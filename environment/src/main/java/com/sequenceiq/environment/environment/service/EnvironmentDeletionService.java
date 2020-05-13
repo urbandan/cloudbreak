@@ -1,18 +1,5 @@
 package com.sequenceiq.environment.environment.service;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.BadRequestException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.sequenceiq.cloudbreak.common.exception.NotFoundException;
 import com.sequenceiq.cloudbreak.logger.MDCBuilder;
@@ -21,6 +8,15 @@ import com.sequenceiq.environment.environment.dto.EnvironmentDto;
 import com.sequenceiq.environment.environment.dto.EnvironmentDtoConverter;
 import com.sequenceiq.environment.environment.flow.EnvironmentReactorFlowManager;
 import com.sequenceiq.environment.environment.sync.EnvironmentJobService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import javax.ws.rs.BadRequestException;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class EnvironmentDeletionService {
@@ -37,14 +33,16 @@ public class EnvironmentDeletionService {
 
     private final EnvironmentJobService environmentJobService;
 
-    public EnvironmentDeletionService(EnvironmentService environmentService, EnvironmentDtoConverter environmentDtoConverter,
-            EnvironmentReactorFlowManager reactorFlowManager, EnvironmentResourceDeletionService environmentResourceDeletionService,
-            EnvironmentJobService environmentJobService) {
-        this.environmentService = environmentService;
-        this.environmentDtoConverter = environmentDtoConverter;
-        this.reactorFlowManager = reactorFlowManager;
+    public EnvironmentDeletionService(EnvironmentService environmentService,
+                                      EnvironmentJobService environmentJobService,
+                                      EnvironmentDtoConverter environmentDtoConverter,
+                                      EnvironmentReactorFlowManager reactorFlowManager,
+                                      EnvironmentResourceDeletionService environmentResourceDeletionService) {
         this.environmentResourceDeletionService = environmentResourceDeletionService;
+        this.environmentDtoConverter = environmentDtoConverter;
         this.environmentJobService = environmentJobService;
+        this.environmentService = environmentService;
+        this.reactorFlowManager = reactorFlowManager;
     }
 
     public EnvironmentDto deleteByNameAndAccountId(String environmentName, String accountId, String actualUserCrn,
@@ -88,20 +86,22 @@ public class EnvironmentDeletionService {
 
     public List<EnvironmentDto> deleteMultipleByNames(Set<String> environmentNames, String accountId, String actualUserCrn,
         boolean cascading, boolean forced) {
-        Collection<Environment> environments = environmentService.findByNameInAndAccountIdAndArchivedIsFalse(environmentNames, accountId);
-        return deleteMultiple(actualUserCrn, cascading, forced, environments);
+        return environmentService
+                .findByNameInAndAccountIdAndArchivedIsFalse(environmentNames, accountId).stream()
+                .map(environment -> {
+                    LOGGER.debug(String.format("Starting to archive environment [name: %s]", environment.getName()));
+                    delete(environment, actualUserCrn, cascading, forced);
+                    return environmentDtoConverter.environmentToDto(environment);
+                })
+                .collect(Collectors.toList());
     }
 
     public List<EnvironmentDto> deleteMultipleByCrns(Set<String> crns, String accountId, String actualUserCrn,
         boolean cascading, boolean forced) {
-        Collection<Environment> environments = environmentService.findByResourceCrnInAndAccountIdAndArchivedIsFalse(crns, accountId);
-        return deleteMultiple(actualUserCrn, cascading, forced, environments);
-    }
-
-    private List<EnvironmentDto> deleteMultiple(String actualUserCrn, boolean cascading, boolean forced, Collection<Environment> environments) {
-        return new ArrayList<>(environments).stream()
+        return environmentService
+                .findByResourceCrnInAndAccountIdAndArchivedIsFalse(crns, accountId).stream()
                 .map(environment -> {
-                    LOGGER.debug(String.format("Starting to archive environment [name: %s, CRN: %s]", environment.getName(), environment.getResourceCrn()));
+                    LOGGER.debug(String.format("Starting to archive environment [CRN: %s]", environment.getName()));
                     delete(environment, actualUserCrn, cascading, forced);
                     return environmentDtoConverter.environmentToDto(environment);
                 })
@@ -128,6 +128,18 @@ public class EnvironmentDeletionService {
             throw new BadRequestException(String.format("The following Data Hub cluster(s) must be terminated before Environment deletion [%s]",
                     String.join(", ", distroXClusterNames)));
         }
+
+
+        long amountOfConnectedExperiences = environmentResourceDeletionService.getConnectedExperienceAmount(env);
+        if (amountOfConnectedExperiences > 0) {
+            if (amountOfConnectedExperiences == 1) {
+                throw new BadRequestException("The given environment has 1 connected experience. " +
+                        "This must be terminated before Environment deletion.");
+            } else {
+                throw new BadRequestException("The given environment has " + amountOfConnectedExperiences + " connected experiences. " +
+                        "These must be terminated before Environment deletion.");
+            }
+        }
     }
 
     void validateDeletion(Environment environment, boolean cascading) {
@@ -140,4 +152,5 @@ public class EnvironmentDeletionService {
             }
         }
     }
+
 }

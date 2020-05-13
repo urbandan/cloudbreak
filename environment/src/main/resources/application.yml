@@ -170,3 +170,27 @@ spring:
 
 notification:
   urls: http://localhost:3000/notifications
+
+experience:
+  scan:
+    protocol: https
+    enabled: false
+    liftie:
+      api:
+        port: 9999
+        address: localhost
+    path:
+      componentToReplace: "{crn}"
+      postfix: "/cp-internal/environment/{crn}"
+    config:
+      experiences:
+        - name: MLX
+          pathPrefix: ${MLX_PATH_PREFIX}
+          pathInfix: ${MLX_PATH_INFIX}
+          port: ${MLX_PATH_PORT}
+        -
+          name: DWX
+          pathPrefix: ${DWX_PATH_PREFIX}
+          pathInfix: ${DWX_PATH_INFIX}
+          port: ${DWX_PATH_PORT}
+
