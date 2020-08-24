@@ -92,8 +92,8 @@ public class GcpCloudProvider extends AbstractCloudProvider {
     @Override
     public NetworkV4TestDto network(NetworkV4TestDto network) {
         GcpNetworkV4Parameters gcpNetworkV4Parameters = new GcpNetworkV4Parameters();
-        gcpNetworkV4Parameters.setNoFirewallRules(false);
-        gcpNetworkV4Parameters.setNoPublicIp(false);
+        //gcpNetworkV4Parameters.setNoFirewallRules(false);
+        //gcpNetworkV4Parameters.setNoPublicIp(false);
         return network.withGcp(gcpNetworkV4Parameters)
                 .withSubnetCIDR(getSubnetCIDR());
     }

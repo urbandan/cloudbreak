@@ -27,6 +27,7 @@ import com.sequenceiq.cloudbreak.cloud.model.CloudCredential;
 import com.sequenceiq.cloudbreak.cloud.model.CloudInstance;
 import com.sequenceiq.cloudbreak.cloud.model.CloudStack;
 import com.sequenceiq.cloudbreak.cloud.model.Group;
+import com.sequenceiq.cloudbreak.cloud.model.GroupNetwork;
 import com.sequenceiq.cloudbreak.cloud.model.Image;
 import com.sequenceiq.cloudbreak.cloud.model.InstanceAuthentication;
 import com.sequenceiq.cloudbreak.cloud.model.InstanceStatus;
@@ -72,7 +73,7 @@ public class ComponentTestUtil {
     private freemarker.template.Configuration configuration;
 
     public AuthenticatedContext getAuthenticatedContext() {
-        Location location = location(region("region"), availabilityZone("availabilityZone"));
+        Location location = location(region("region"), availabilityZone("availabilityZone"), new HashMap<>());
         CloudContext cloudContext = new CloudContext(1L, "cloudContextName", AWS, "variant", location, "owner@company.com", 5L);
         CloudCredential cloudCredential = new CloudCredential("crn", "credentialName");
         return new AuthenticatedContext(cloudContext, cloudCredential);
@@ -92,10 +93,12 @@ public class ComponentTestUtil {
                 getCloudInstance(instanceAuthentication, "worker", InstanceStatus.STARTED, 2L, INSTANCE_ID_3));
         List<Group> groups = List.of(new Group("master", InstanceGroupType.CORE, masterInstances, security, null,
                         instanceAuthentication, instanceAuthentication.getLoginUserName(),
-                        instanceAuthentication.getPublicKey(), ROOT_VOLUME_SIZE, Optional.empty()),
+                        instanceAuthentication.getPublicKey(), ROOT_VOLUME_SIZE, Optional.empty(),
+                        new GroupNetwork()),
                 new Group("worker", InstanceGroupType.CORE, workerInstances, security, null,
                         instanceAuthentication, instanceAuthentication.getLoginUserName(),
-                        instanceAuthentication.getPublicKey(), ROOT_VOLUME_SIZE, Optional.empty()));
+                        instanceAuthentication.getPublicKey(), ROOT_VOLUME_SIZE, Optional.empty(),
+                        new GroupNetwork()));
         Network network = new Network(new Subnet(CIDR));
 
         Map<InstanceGroupType, String> userData = ImmutableMap.of(
@@ -116,7 +119,7 @@ public class ComponentTestUtil {
 
         List<Group> groups = List.of(new Group("group1", InstanceGroupType.CORE, List.of(instance), security, null,
                 instanceAuthentication, instanceAuthentication.getLoginUserName(),
-                instanceAuthentication.getPublicKey(), ROOT_VOLUME_SIZE, Optional.empty()));
+                instanceAuthentication.getPublicKey(), ROOT_VOLUME_SIZE, Optional.empty(), new GroupNetwork()));
         Network network = new Network(new Subnet(CIDR));
 
         Map<InstanceGroupType, String> userData = ImmutableMap.of(

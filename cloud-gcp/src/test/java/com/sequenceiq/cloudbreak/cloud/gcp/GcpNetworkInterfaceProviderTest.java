@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -141,7 +142,7 @@ public class GcpNetworkInterfaceProviderTest {
     }
 
     private CloudContext createCloudContext() {
-        Location location = Location.location(null, AvailabilityZone.availabilityZone(AZ));
+        Location location = Location.location(null, AvailabilityZone.availabilityZone(AZ), new HashMap<>());
         return new CloudContext(null, "test-cluster", null, null, location, null, null, "");
     }
 

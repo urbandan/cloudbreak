@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -113,8 +114,8 @@ public class EncryptedImageCopyServiceTest {
     private void testCreateEncryptedImagesWhenNoImagesAreExpected(InstanceTemplate temp) {
         CloudInstance instance = new CloudInstance("SOME_ID", temp, null);
         List<Group> groups = new ArrayList<>();
-        groups.add(new Group("master", InstanceGroupType.GATEWAY, singletonList(instance), null, null, null, null, null, null, 30, identity));
-        groups.add(new Group("worker", InstanceGroupType.CORE, singletonList(instance), null, null, null, null, null, null, 30, identity));
+        groups.add(new Group("master", InstanceGroupType.GATEWAY, singletonList(instance), null, null, null, null, null, null, 30, identity, null));
+        groups.add(new Group("worker", InstanceGroupType.CORE, singletonList(instance), null, null, null, null, null, null, 30, identity, null));
         when(cloudStack.getGroups()).thenReturn(groups);
 
         Map<String, String> encryptedImages = underTest.createEncryptedImages(authenticatedContext(), cloudStack, resourceNotifier);
@@ -136,8 +137,8 @@ public class EncryptedImageCopyServiceTest {
                 Map.of(AwsInstanceTemplate.EBS_ENCRYPTION_ENABLED, true), 0L, "imageId");
         CloudInstance instance = new CloudInstance("SOME_ID", temp, null);
         List<Group> groups = new ArrayList<>();
-        groups.add(new Group("master", InstanceGroupType.GATEWAY, singletonList(instance), null, null, null, null, null, null, 30, identity));
-        groups.add(new Group("worker", InstanceGroupType.CORE, singletonList(instance), null, null, null, null, null, null, 30, identity));
+        groups.add(new Group("master", InstanceGroupType.GATEWAY, singletonList(instance), null, null, null, null, null, null, 30, identity, null));
+        groups.add(new Group("worker", InstanceGroupType.CORE, singletonList(instance), null, null, null, null, null, null, 30, identity, null));
         when(cloudStack.getGroups()).thenReturn(groups);
 
         String encryptedImageId = "ami-87654321";
@@ -163,8 +164,8 @@ public class EncryptedImageCopyServiceTest {
                         InstanceTemplate.VOLUME_ENCRYPTION_KEY_ID, "arn:aws:kms:eu-west-1:980678888888:key/7e9173f2-6ac8"), 0L, "imageId");
         CloudInstance instance = new CloudInstance("SOME_ID", temp, null);
         List<Group> groups = new ArrayList<>();
-        groups.add(new Group("master", InstanceGroupType.GATEWAY, singletonList(instance), null, null, null, null, null, null, 30, identity));
-        groups.add(new Group("worker", InstanceGroupType.CORE, singletonList(instance), null, null, null, null, null, null, 30, identity));
+        groups.add(new Group("master", InstanceGroupType.GATEWAY, singletonList(instance), null, null, null, null, null, null, 30, identity, null));
+        groups.add(new Group("worker", InstanceGroupType.CORE, singletonList(instance), null, null, null, null, null, null, 30, identity, null));
         when(cloudStack.getGroups()).thenReturn(groups);
 
         String encryptedImageId = "ami-87654321";
@@ -193,13 +194,13 @@ public class EncryptedImageCopyServiceTest {
                 Map.of(AwsInstanceTemplate.EBS_ENCRYPTION_ENABLED, true,
                         InstanceTemplate.VOLUME_ENCRYPTION_KEY_ID, "arn:aws:kms:eu-west-1:980678888888:key/7e9173f2-6ac8"), 0L, "imageId");
         CloudInstance instance = new CloudInstance("SOME_ID", temp, null);
-        groups.add(new Group("master", InstanceGroupType.GATEWAY, singletonList(instance), null, null, null, null, null, null, 30, identity));
+        groups.add(new Group("master", InstanceGroupType.GATEWAY, singletonList(instance), null, null, null, null, null, null, 30, identity, null));
 
         InstanceTemplate temp2 = new InstanceTemplate("medium", "worker", 1L, emptyList(), InstanceStatus.CREATE_REQUESTED,
                 Map.of(AwsInstanceTemplate.EBS_ENCRYPTION_ENABLED, true,
                         InstanceTemplate.VOLUME_ENCRYPTION_KEY_ID, "arn:aws:kms:eu-west-1:980678888888:key/almafa23-6ac8"), 1L, "imageId");
         CloudInstance instance2 = new CloudInstance("SECOND_ID", temp2, null);
-        groups.add(new Group("worker", InstanceGroupType.CORE, singletonList(instance2), null, null, null, null, null, null, 30, identity));
+        groups.add(new Group("worker", InstanceGroupType.CORE, singletonList(instance2), null, null, null, null, null, null, 30, identity, null));
 
         when(cloudStack.getGroups()).thenReturn(groups);
 
@@ -231,18 +232,18 @@ public class EncryptedImageCopyServiceTest {
                 Map.of(AwsInstanceTemplate.EBS_ENCRYPTION_ENABLED, true,
                         InstanceTemplate.VOLUME_ENCRYPTION_KEY_ID, "arn:aws:kms:eu-west-1:980678888888:key/7e9173f2-6ac8"), 0L, "imageId");
         CloudInstance instance = new CloudInstance("SOME_ID", temp, null);
-        groups.add(new Group("master", InstanceGroupType.GATEWAY, singletonList(instance), null, null, null, null, null, null, 30, identity));
+        groups.add(new Group("master", InstanceGroupType.GATEWAY, singletonList(instance), null, null, null, null, null, null, 30, identity, null));
 
         InstanceTemplate temp2 = new InstanceTemplate("medium", "worker", 1L, emptyList(), InstanceStatus.CREATE_REQUESTED,
                 Map.of(AwsInstanceTemplate.EBS_ENCRYPTION_ENABLED, true,
                         InstanceTemplate.VOLUME_ENCRYPTION_KEY_ID, "arn:aws:kms:eu-west-1:980678888888:key/almafa23-6ac8"), 1L, "imageId");
         CloudInstance instance2 = new CloudInstance("SECOND_ID", temp2, null);
-        groups.add(new Group("worker", InstanceGroupType.CORE, singletonList(instance2), null, null, null, null, null, null, 30, identity));
+        groups.add(new Group("worker", InstanceGroupType.CORE, singletonList(instance2), null, null, null, null, null, null, 30, identity, null));
 
         InstanceTemplate unencryptedTemp = new InstanceTemplate("medium", "worker", 1L, emptyList(), InstanceStatus.CREATE_REQUESTED,
                 Map.of(AwsInstanceTemplate.EBS_ENCRYPTION_ENABLED, false), 1L, "imageId");
         CloudInstance unencryptedInstance = new CloudInstance("UNENCRYPTED_ID", unencryptedTemp, null);
-        groups.add(new Group("compute", InstanceGroupType.CORE, singletonList(unencryptedInstance), null, null, null, null, null, null, 30, identity));
+        groups.add(new Group("compute", InstanceGroupType.CORE, singletonList(unencryptedInstance), null, null, null, null, null, null, 30, identity, null));
 
         when(cloudStack.getGroups()).thenReturn(groups);
 
@@ -495,7 +496,7 @@ public class EncryptedImageCopyServiceTest {
     }
 
     protected static AuthenticatedContext authenticatedContext() {
-        Location location = Location.location(Region.region("region"), AvailabilityZone.availabilityZone("az"));
+        Location location = Location.location(Region.region("region"), AvailabilityZone.availabilityZone("az"), new HashMap<>());
         CloudContext cloudContext = new CloudContext(5L, "name", "platform", "variant",
                 location, USER_ID, WORKSPACE_ID);
         CloudCredential credential = new CloudCredential("crn", null);

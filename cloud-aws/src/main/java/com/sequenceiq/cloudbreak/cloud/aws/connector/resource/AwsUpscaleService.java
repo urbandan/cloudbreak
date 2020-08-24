@@ -221,7 +221,7 @@ public class AwsUpscaleService {
 
     private void associateElasticIpWithNewInstances(CloudStack stack, List<CloudResource> resources, AmazonCloudFormationRetryClient cloudFormationClient,
             AmazonEC2Client amazonEC2Client, List<Group> scaledGroups, List<CloudResource> instances) {
-        boolean mapPublicIpOnLaunch = awsNetworkService.isMapPublicOnLaunch(new AwsNetworkView(stack.getNetwork()), amazonEC2Client);
+        boolean mapPublicIpOnLaunch = awsNetworkService.isMapPublicOnLaunch(new AwsNetworkView(stack.getNetwork(), stack), amazonEC2Client);
         List<Group> gateways = awsNetworkService.getGatewayGroups(scaledGroups);
         Map<String, List<String>> gatewayGroupInstanceMapping = createGatewayToNewInstancesMap(instances, gateways);
         if (mapPublicIpOnLaunch && !gateways.isEmpty()) {
@@ -269,8 +269,19 @@ public class AwsUpscaleService {
             List<CloudInstance> newInstances = group.getInstances().stream()
                     .filter(instance -> Objects.isNull(instance.getInstanceId())).collect(Collectors.toList());
 
-            return new Group(group.getName(), group.getType(), newInstances, group.getSecurity(), null, group.getParameters(),
-                    group.getInstanceAuthentication(), group.getLoginUserName(), group.getPublicKey(), group.getRootVolumeSize(), group.getIdentity());
+            return new Group(
+                    group.getName(),
+                    group.getType(),
+                    newInstances,
+                    group.getSecurity(),
+                    null,
+                    group.getParameters(),
+                    group.getInstanceAuthentication(),
+                    group.getLoginUserName(),
+                    group.getPublicKey(),
+                    group.getRootVolumeSize(),
+                    group.getIdentity(),
+                    group.getNetwork());
         }).collect(Collectors.toList());
     }
 

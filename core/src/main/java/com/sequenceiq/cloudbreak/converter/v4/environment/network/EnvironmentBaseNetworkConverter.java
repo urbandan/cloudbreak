@@ -10,12 +10,14 @@ import javax.ws.rs.BadRequestException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.util.Pair;
 
 import com.sequenceiq.cloudbreak.cloud.model.CloudSubnet;
 import com.sequenceiq.cloudbreak.common.converter.MissingResourceNameGenerator;
 import com.sequenceiq.cloudbreak.common.json.Json;
 import com.sequenceiq.cloudbreak.common.type.APIResourceType;
 import com.sequenceiq.cloudbreak.domain.Network;
+import com.sequenceiq.cloudbreak.domain.stack.instance.network.InstanceGroupNetwork;
 import com.sequenceiq.environment.api.v1.environment.model.response.EnvironmentNetworkResponse;
 
 public abstract class EnvironmentBaseNetworkConverter implements EnvironmentNetworkConverter {
@@ -25,12 +27,26 @@ public abstract class EnvironmentBaseNetworkConverter implements EnvironmentNetw
     private MissingResourceNameGenerator missingResourceNameGenerator;
 
     @Override
-    public Network convertToLegacyNetwork(EnvironmentNetworkResponse source, String availabilityZone) {
+    public Network convertToLegacyNetwork(EnvironmentNetworkResponse source) {
         Network result = new Network();
         result.setName(missingResourceNameGenerator.generateName(APIResourceType.NETWORK));
         result.setSubnetCIDR(null);
         result.setOutboundInternetTraffic(source.getOutboundInternetTraffic());
         result.setNetworkCidrs(source.getNetworkCidrs());
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("cloudPlatform", getCloudPlatform().name());
+        attributes.putAll(getAttributesForLegacyNetwork(source));
+        try {
+            result.setAttributes(new Json(attributes));
+        } catch (IllegalArgumentException e) {
+            LOGGER.debug("Environment's network could not be converted to network.", e);
+        }
+        return result;
+    }
+
+    @Override
+    public Pair<InstanceGroupNetwork, String> convertToLegacyInstanceGroupNetwork(EnvironmentNetworkResponse source, String availabilityZone) {
+        InstanceGroupNetwork instanceGroupNetwork = new InstanceGroupNetwork();
         Map<String, Object> attributes = new HashMap<>();
         Optional<CloudSubnet> cloudSubnet;
         if (StringUtils.isNotBlank(source.getPreferedSubnetId())) {
@@ -61,11 +77,11 @@ public abstract class EnvironmentBaseNetworkConverter implements EnvironmentNetw
         attributes.put("cloudPlatform", getCloudPlatform().name());
         attributes.putAll(getAttributesForLegacyNetwork(source));
         try {
-            result.setAttributes(new Json(attributes));
+            instanceGroupNetwork.setAttributes(new Json(attributes));
         } catch (IllegalArgumentException e) {
             LOGGER.debug("Environment's network could not be converted to network.", e);
         }
-        return result;
+        return Pair.of(instanceGroupNetwork, source.getSubnetMetas().get(cloudSubnet.get().getId()).getAvailabilityZone());
     }
 
     abstract Map<String, Object> getAttributesForLegacyNetwork(EnvironmentNetworkResponse source);

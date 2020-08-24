@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -85,7 +86,7 @@ class AwsDownscaleServiceTest {
         cloudInstances.add(workerInstance2);
         cloudInstances.add(workerInstance3);
         AuthenticatedContext authenticatedContext = new AuthenticatedContext(new CloudContext(1L, "teststack", "AWS", "AWS",
-                Location.location(Region.region("eu-west-1"), AvailabilityZone.availabilityZone("eu-west-1a")), "1", "1"),
+                Location.location(Region.region("eu-west-1"), AvailabilityZone.availabilityZone("eu-west-1a"), new HashMap<>()), "1", "1"),
                 new CloudCredential());
         AmazonAutoScalingRetryClient amazonAutoScalingRetryClient = mock(AmazonAutoScalingRetryClient.class);
         when(awsClient.createAutoScalingRetryClient(any(), anyString())).thenReturn(amazonAutoScalingRetryClient);
@@ -132,7 +133,7 @@ class AwsDownscaleServiceTest {
         cloudInstances.add(workerInstance2);
         cloudInstances.add(workerInstance3);
         AuthenticatedContext authenticatedContext = new AuthenticatedContext(new CloudContext(1L, "teststack", "AWS", "AWS",
-                Location.location(Region.region("eu-west-1"), AvailabilityZone.availabilityZone("eu-west-1a")), "1", "1"),
+                Location.location(Region.region("eu-west-1"), AvailabilityZone.availabilityZone("eu-west-1a"), new HashMap<>()), "1", "1"),
                 new CloudCredential());
         AmazonAutoScalingRetryClient amazonAutoScalingRetryClient = mock(AmazonAutoScalingRetryClient.class);
         when(awsClient.createAutoScalingRetryClient(any(), anyString())).thenReturn(amazonAutoScalingRetryClient);
@@ -175,7 +176,7 @@ class AwsDownscaleServiceTest {
         CloudInstance workerInstance1 = new CloudInstance("i-worker1", mock(InstanceTemplate.class), instanceAuthentication);
         cloudInstances.add(workerInstance1);
         AuthenticatedContext authenticatedContext = new AuthenticatedContext(new CloudContext(1L, "teststack", "AWS", "AWS",
-                Location.location(Region.region("eu-west-1"), AvailabilityZone.availabilityZone("eu-west-1a")), "1", "1"),
+                Location.location(Region.region("eu-west-1"), AvailabilityZone.availabilityZone("eu-west-1a"), new HashMap<>()), "1", "1"),
                 new CloudCredential());
 
         AmazonAutoScalingRetryClient amazonAutoScalingRetryClient = mock(AmazonAutoScalingRetryClient.class);

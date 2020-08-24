@@ -1,5 +1,18 @@
 package com.sequenceiq.redbeams.flow.redbeams.stop.actions;
 
+import static com.sequenceiq.cloudbreak.cloud.model.AvailabilityZone.availabilityZone;
+import static com.sequenceiq.cloudbreak.cloud.model.Location.location;
+import static com.sequenceiq.cloudbreak.cloud.model.Region.region;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+
+import org.springframework.statemachine.StateContext;
+
 import com.sequenceiq.cloudbreak.cloud.context.CloudContext;
 import com.sequenceiq.cloudbreak.cloud.model.CloudCredential;
 import com.sequenceiq.cloudbreak.cloud.model.DatabaseStack;
@@ -18,16 +31,6 @@ import com.sequenceiq.redbeams.flow.redbeams.stop.RedbeamsStopEvent;
 import com.sequenceiq.redbeams.flow.redbeams.stop.RedbeamsStopState;
 import com.sequenceiq.redbeams.service.CredentialService;
 import com.sequenceiq.redbeams.service.stack.DBStackService;
-import org.springframework.statemachine.StateContext;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import java.util.Map;
-import java.util.Optional;
-
-import static com.sequenceiq.cloudbreak.cloud.model.AvailabilityZone.availabilityZone;
-import static com.sequenceiq.cloudbreak.cloud.model.Location.location;
-import static com.sequenceiq.cloudbreak.cloud.model.Region.region;
 
 public abstract class AbstractRedbeamsStopAction<P extends Payload>
         extends AbstractAction<RedbeamsStopState, RedbeamsStopEvent, RedbeamsStopContext, P> {
@@ -63,7 +66,7 @@ public abstract class AbstractRedbeamsStopAction<P extends Payload>
             StateContext<RedbeamsStopState, RedbeamsStopEvent> stateContext, P payload) {
         DBStack dbStack = dbStackService.getById(payload.getResourceId());
         MDCBuilder.buildMdcContext(dbStack);
-        Location location = location(region(dbStack.getRegion()), availabilityZone(dbStack.getAvailabilityZone()));
+        Location location = location(region(dbStack.getRegion()), availabilityZone(dbStack.getAvailabilityZone()), new HashMap<>());
         String userName = dbStack.getOwnerCrn().getUserId();
         String accountId = dbStack.getOwnerCrn().getAccountId();
         CloudContext cloudContext = new CloudContext(dbStack.getId(), dbStack.getName(), dbStack.getCloudPlatform(), dbStack.getPlatformVariant(),

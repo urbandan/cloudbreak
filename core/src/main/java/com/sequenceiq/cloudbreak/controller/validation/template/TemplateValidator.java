@@ -29,6 +29,7 @@ import com.sequenceiq.cloudbreak.converter.spi.CredentialToExtendedCloudCredenti
 import com.sequenceiq.cloudbreak.domain.Template;
 import com.sequenceiq.cloudbreak.domain.VolumeTemplate;
 import com.sequenceiq.cloudbreak.domain.stack.Stack;
+import com.sequenceiq.cloudbreak.domain.stack.instance.InstanceGroup;
 import com.sequenceiq.cloudbreak.dto.credential.Credential;
 import com.sequenceiq.cloudbreak.validation.ValidationResult;
 import com.sequenceiq.cloudbreak.workspace.model.User;
@@ -52,7 +53,7 @@ public class TemplateValidator {
     private final Supplier<Map<Platform, PlatformParameters>> platformParameters =
             Suppliers.memoize(() -> cloudParameterService.getPlatformParameters());
 
-    public void validate(Credential credential, Template value, Stack stack,
+    public void validate(Credential credential, InstanceGroup ig, Stack stack,
         CdpResourceType stackType, Optional<User> user, ValidationResult.ValidationResultBuilder validationBuilder) {
 
         CloudVmTypes cloudVmTypes = cloudParameterService.getVmTypesV2(
@@ -62,16 +63,16 @@ public class TemplateValidator {
                 stackType,
                 new HashMap<>());
 
-        if (StringUtils.isEmpty(value.getInstanceType())) {
-            validateCustomInstanceType(value, validationBuilder);
+        if (StringUtils.isEmpty(ig.getTemplate().getInstanceType())) {
+            validateCustomInstanceType(ig.getTemplate(), validationBuilder);
         } else {
             VmType vmType = null;
-            Platform platform = Platform.platform(value.cloudPlatform());
+            Platform platform = Platform.platform(ig.getTemplate().cloudPlatform());
             Map<String, Set<VmType>> machines = cloudVmTypes.getCloudVmResponses();
-            String locationString = locationService.location(stack.getRegion(), stack.getAvailabilityZone());
+            String locationString = locationService.location(stack.getRegion(), ig.getAvailabilityZone());
             if (machines.containsKey(locationString) && !machines.get(locationString).isEmpty()) {
                 for (VmType type : machines.get(locationString)) {
-                    if (type.value().equals(value.getInstanceType())) {
+                    if (type.value().equals(ig.getTemplate().getInstanceType())) {
                         vmType = type;
                         break;
                     }
@@ -79,14 +80,14 @@ public class TemplateValidator {
                 if (vmType == null) {
                     validationBuilder.error(
                             String.format("The '%s' instance type isn't supported by '%s' platform",
-                                    value.getInstanceType(),
+                                    ig.getTemplate().getInstanceType(),
                                     platform.value()));
 
                 }
             }
 
-            validateVolumeTemplates(value, vmType, platform, validationBuilder);
-            validateMaximumVolumeSize(value, vmType, validationBuilder);
+            validateVolumeTemplates(ig.getTemplate(), vmType, platform, validationBuilder);
+            validateMaximumVolumeSize(ig.getTemplate(), vmType, validationBuilder);
         }
     }
 

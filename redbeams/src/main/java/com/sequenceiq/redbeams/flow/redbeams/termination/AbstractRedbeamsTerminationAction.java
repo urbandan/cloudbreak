@@ -4,6 +4,7 @@ import static com.sequenceiq.cloudbreak.cloud.model.AvailabilityZone.availabilit
 import static com.sequenceiq.cloudbreak.cloud.model.Location.location;
 import static com.sequenceiq.cloudbreak.cloud.model.Region.region;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -71,21 +72,17 @@ public abstract class AbstractRedbeamsTerminationAction<P extends RedbeamsEvent>
         CloudCredential cloudCredential = null;
         DatabaseStack databaseStack = null;
         DBStack dbStack = null;
-        dbStack = optionalDBStack.get();
-        MDCBuilder.buildMdcContext(dbStack);
-        Location location = location(region(dbStack.getRegion()), availabilityZone(dbStack.getAvailabilityZone()));
-        String userName = dbStack.getOwnerCrn().getUserId();
-        String accountId = dbStack.getOwnerCrn().getAccountId();
-        cloudContext = new CloudContext(dbStack.getId(), dbStack.getName(), dbStack.getCloudPlatform(), dbStack.getPlatformVariant(),
-                location, userName, accountId);
 
         if (optionalDBStack.isPresent()) {
-            try {
-                Credential credential = credentialService.getCredentialByEnvCrn(dbStack.getEnvironmentId());
-                cloudCredential = credentialConverter.convert(credential);
-            } catch (Exception ex) {
-                LOGGER.warn("Could not detect credential for environment: {}", dbStack.getEnvironmentId());
-            }
+            Credential credential = credentialService.getCredentialByEnvCrn(dbStack.getEnvironmentId());
+            cloudCredential = credentialConverter.convert(credential);
+            Location location = location(region(dbStack.getRegion()), availabilityZone(dbStack.getAvailabilityZone()), new HashMap<>());
+            String userName = dbStack.getOwnerCrn().getUserId();
+            String accountId = dbStack.getOwnerCrn().getAccountId();
+            dbStack = optionalDBStack.get();
+            MDCBuilder.buildMdcContext(dbStack);
+            cloudContext = new CloudContext(dbStack.getId(), dbStack.getName(), dbStack.getCloudPlatform(), dbStack.getPlatformVariant(),
+                    location, userName, accountId);
             databaseStack = databaseStackConverter.convert(dbStack);
         }
         return new RedbeamsContext(flowParameters, cloudContext, cloudCredential, databaseStack, dbStack);

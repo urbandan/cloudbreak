@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -95,7 +96,7 @@ public class AzureStackViewProviderTest {
     }
 
     private CloudContext createCloudContext() {
-        Location location = Location.location(Region.region("us-west-1"), AvailabilityZone.availabilityZone("us-west-1"));
+        Location location = Location.location(Region.region("us-west-1"), AvailabilityZone.availabilityZone("us-west-1"), new HashMap<>());
         return new CloudContext(null, STACK_NAME, null, null, location, null, null, "");
     }
 

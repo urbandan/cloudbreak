@@ -71,7 +71,7 @@ public class UserDataService {
     private ProxyConfigDtoService proxyConfigDtoService;
 
     public void createUserData(Long stackId) throws CloudbreakImageNotFoundException {
-        Stack stack = stackService.getById(stackId);
+        Stack stack = stackService.getByIdWithLists(stackId);
         String userCrn = ThreadBasedUserCrnProvider.getUserCrn();
         Future<PlatformParameters> platformParametersFuture =
                 intermediateBuilderExecutor.submit(() -> connector.getPlatformParameters(stack, userCrn));

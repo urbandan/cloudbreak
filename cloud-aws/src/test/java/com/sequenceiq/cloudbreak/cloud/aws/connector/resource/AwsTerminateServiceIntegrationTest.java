@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -205,7 +206,7 @@ public class AwsTerminateServiceIntegrationTest {
     public void testTerminateWhenResourcesHasNoCfButStackNotExist() {
         CloudResource cf = new Builder().name("cfn-87654321").type(ResourceType.CLOUDFORMATION_STACK).build();
         CloudResource lc = new Builder().name("lc-87654321").type(ResourceType.AWS_LAUNCHCONFIGURATION).build();
-        Group group = new Group("alma", InstanceGroupType.GATEWAY, List.of(), null, null, null, null, "", 0, Optional.empty());
+        Group group = new Group("alma", InstanceGroupType.GATEWAY, List.of(), null, null, null, null, "", 0, Optional.empty(), null);
         DescribeAutoScalingGroupsResult describeAutoScalingGroupsResult = new DescribeAutoScalingGroupsResult();
         describeAutoScalingGroupsResult.setAutoScalingGroups(List.of());
 
@@ -230,7 +231,7 @@ public class AwsTerminateServiceIntegrationTest {
     public void testTerminateWhenResourcesHasCf() {
         CloudResource cf = new Builder().name("cfn-87654321").type(ResourceType.CLOUDFORMATION_STACK).build();
         CloudResource lc = new Builder().name("lc-87654321").type(ResourceType.AWS_LAUNCHCONFIGURATION).build();
-        Group group = new Group("alma", InstanceGroupType.GATEWAY, List.of(), null, null, null, null, "", 0, Optional.empty());
+        Group group = new Group("alma", InstanceGroupType.GATEWAY, List.of(), null, null, null, null, "", 0, Optional.empty(), null);
         DescribeAutoScalingGroupsResult describeAutoScalingGroupsResult = new DescribeAutoScalingGroupsResult();
         describeAutoScalingGroupsResult.setAutoScalingGroups(List.of());
 
@@ -258,7 +259,7 @@ public class AwsTerminateServiceIntegrationTest {
     }
 
     private AuthenticatedContext authenticatedContext() {
-        Location location = Location.location(Region.region("region"), AvailabilityZone.availabilityZone("az"));
+        Location location = Location.location(Region.region("region"), AvailabilityZone.availabilityZone("az"), new HashMap<>());
         CloudContext cloudContext = new CloudContext(5L, "name", "platform", "variant",
                 location, USER_ID, WORKSPACE_ID);
         CloudCredential credential = new CloudCredential("crn", null);

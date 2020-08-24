@@ -11,8 +11,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.google.common.collect.Sets;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.request.network.NetworkV4Request;
-import com.sequenceiq.distrox.api.v1.distrox.model.network.AwsNetworkV1Parameters;
-import com.sequenceiq.distrox.api.v1.distrox.model.network.AzureNetworkV1Parameters;
+import com.sequenceiq.distrox.api.v1.distrox.model.network.aws.AwsNetworkV1Parameters;
+import com.sequenceiq.distrox.api.v1.distrox.model.network.azure.AzureNetworkV1Parameters;
 import com.sequenceiq.distrox.api.v1.distrox.model.network.NetworkV1Request;
 import com.sequenceiq.environment.api.v1.environment.model.EnvironmentNetworkAwsParams;
 import com.sequenceiq.environment.api.v1.environment.model.EnvironmentNetworkAzureParams;
@@ -44,7 +44,6 @@ public class NetworkV1ToNetworkV4ConverterTest {
                 .convertToNetworkV4Request(new ImmutablePair<>(networkV1Request, environmentNetworkResponse));
 
         Assert.assertEquals(networkV4Request.createAws().getVpcId(), VPC_ID);
-        Assert.assertEquals(networkV4Request.createAws().getSubnetId(), SUBNET_ID);
     }
 
     @Test
@@ -57,7 +56,6 @@ public class NetworkV1ToNetworkV4ConverterTest {
                 .convertToNetworkV4Request(new ImmutablePair<>(networkV1Request, environmentNetworkResponse));
 
         Assert.assertEquals(networkV4Request.createAws().getVpcId(), VPC_ID);
-        Assert.assertTrue(SUBNET_IDS.contains(networkV4Request.createAws().getSubnetId()));
     }
 
     @Test
@@ -71,7 +69,6 @@ public class NetworkV1ToNetworkV4ConverterTest {
 
         Assert.assertEquals(networkV4Request.createAzure().getNetworkId(), VPC_ID);
         Assert.assertEquals(networkV4Request.createAzure().getResourceGroupName(), GROUP_NAME);
-        Assert.assertEquals(networkV4Request.createAzure().getSubnetId(), SUBNET_ID);
     }
 
     @Test
@@ -85,7 +82,6 @@ public class NetworkV1ToNetworkV4ConverterTest {
 
         Assert.assertEquals(networkV4Request.createAzure().getNetworkId(), VPC_ID);
         Assert.assertEquals(networkV4Request.createAzure().getResourceGroupName(), GROUP_NAME);
-        Assert.assertTrue(SUBNET_IDS.contains(networkV4Request.createAzure().getSubnetId()));
     }
 
     @Test

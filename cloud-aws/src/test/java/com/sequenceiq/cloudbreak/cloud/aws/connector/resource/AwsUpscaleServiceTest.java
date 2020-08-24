@@ -51,6 +51,7 @@ import com.sequenceiq.cloudbreak.cloud.model.CloudInstance;
 import com.sequenceiq.cloudbreak.cloud.model.CloudResource;
 import com.sequenceiq.cloudbreak.cloud.model.CloudStack;
 import com.sequenceiq.cloudbreak.cloud.model.Group;
+import com.sequenceiq.cloudbreak.cloud.model.GroupNetwork;
 import com.sequenceiq.cloudbreak.cloud.model.InstanceAuthentication;
 import com.sequenceiq.cloudbreak.cloud.model.InstanceStatus;
 import com.sequenceiq.cloudbreak.cloud.model.InstanceTemplate;
@@ -135,7 +136,8 @@ class AwsUpscaleServiceTest {
                 .thenReturn("masterASG");
 
         AuthenticatedContext authenticatedContext = new AuthenticatedContext(new CloudContext(1L, "teststack", "AWS", "AWS",
-                Location.location(Region.region("eu-west-1"), AvailabilityZone.availabilityZone("eu-west-1a")), "1", "1"), new CloudCredential());
+                Location.location(Region.region("eu-west-1"), AvailabilityZone.availabilityZone("eu-west-1a"), new HashMap<>()),
+                "1", "1"), new CloudCredential());
 
         ArrayList<CloudResource> allInstances = new ArrayList<>();
         allInstances.add(CloudResource.builder().type(ResourceType.AWS_INSTANCE).status(CommonStatus.CREATED)
@@ -222,7 +224,8 @@ class AwsUpscaleServiceTest {
                 .thenReturn("masterASG");
 
         AuthenticatedContext authenticatedContext = new AuthenticatedContext(new CloudContext(1L, "teststack", "AWS", "AWS",
-                Location.location(Region.region("eu-west-1"), AvailabilityZone.availabilityZone("eu-west-1a")), "1", "1"), new CloudCredential());
+                Location.location(Region.region("eu-west-1"), AvailabilityZone.availabilityZone("eu-west-1a"), new HashMap<>()),
+                "1", "1"), new CloudCredential());
 
         List<CloudResource> allInstances = new ArrayList<>();
         allInstances.add(CloudResource.builder().type(ResourceType.AWS_INSTANCE).status(CommonStatus.CREATED)
@@ -301,7 +304,8 @@ class AwsUpscaleServiceTest {
         cloudInstances.add(workerInstance4);
         cloudInstances.add(workerInstance5);
         return new Group("worker", InstanceGroupType.CORE, cloudInstances, null, null,
-                instanceAuthentication, instanceAuthentication.getLoginUserName(), instanceAuthentication.getPublicKey(), 50, Optional.empty());
+                instanceAuthentication, instanceAuthentication.getLoginUserName(), instanceAuthentication.getPublicKey(), 50, Optional.empty(),
+                new GroupNetwork());
     }
 
     private Group getMasterGroup(InstanceAuthentication instanceAuthentication) {
@@ -311,7 +315,8 @@ class AwsUpscaleServiceTest {
         masterInstances.add(masterInstance1);
         masterInstances.add(masterInstance2);
         return new Group("master", InstanceGroupType.GATEWAY, masterInstances, null, null,
-                instanceAuthentication, instanceAuthentication.getLoginUserName(), instanceAuthentication.getPublicKey(), 50, Optional.empty());
+                instanceAuthentication, instanceAuthentication.getLoginUserName(), instanceAuthentication.getPublicKey(), 50, Optional.empty(),
+                new GroupNetwork());
     }
 
     private Network getNetwork() {

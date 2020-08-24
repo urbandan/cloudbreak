@@ -36,7 +36,7 @@ public class EnvironmentBaseNetworkConverterTest {
     public void testConvertToLegacyNetworkWhenSubnetNotFound() {
         EnvironmentNetworkResponse source = new EnvironmentNetworkResponse();
         source.setSubnetMetas(Map.of("key", getCloudSubnet("any")));
-        BadRequestException badRequestException = assertThrows(BadRequestException.class, () -> underTest.convertToLegacyNetwork(source, "eu-west-1a"));
+        BadRequestException badRequestException = assertThrows(BadRequestException.class, () -> underTest.convertToLegacyNetwork(source));
         assertEquals(badRequestException.getMessage(), "No subnet for the given availability zone: eu-west-1a");
     }
 
@@ -47,7 +47,7 @@ public class EnvironmentBaseNetworkConverterTest {
         source.setNetworkCidrs(networkCidrs);
         source.setOutboundInternetTraffic(OutboundInternetTraffic.DISABLED);
         source.setSubnetMetas(Map.of("key", getCloudSubnet("eu-west-1a")));
-        Network network = underTest.convertToLegacyNetwork(source, "eu-west-1a");
+        Network network = underTest.convertToLegacyNetwork(source);
         assertEquals(network.getAttributes().getValue("subnetId"), "eu-west-1");
         assertTrue(network.getNetworkCidrs().containsAll(networkCidrs));
         assertEquals(source.getOutboundInternetTraffic(), network.getOutboundInternetTraffic());
