@@ -9,9 +9,8 @@ import javax.validation.constraints.Size;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.sequenceiq.authorization.annotation.ResourceObjectField;
+import com.sequenceiq.authorization.resource.AuthNameString;
 import com.sequenceiq.authorization.resource.AuthorizationResourceAction;
-import com.sequenceiq.authorization.resource.AuthorizationVariableType;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.blueprint.BlueprintV4Base;
 import com.sequenceiq.cloudbreak.doc.ModelDescriptions;
 import com.sequenceiq.cloudbreak.doc.ModelDescriptions.BlueprintModelDescription;
@@ -29,8 +28,7 @@ public class BlueprintV4Request extends BlueprintV4Base {
     @Size(max = 100, min = 1, message = "The length of the blueprint's name has to be in range of 1 to 100 and should not contain semicolon "
             + "and percentage character.")
     @Pattern(regexp = "^[^;\\/%]*$")
-    @ResourceObjectField(action = AuthorizationResourceAction.DESCRIBE_CLUSTER_TEMPLATE, variableType = AuthorizationVariableType.NAME)
-    private String name;
+    private AuthNameString name;
 
     @ValidHttpContentSize
     @ApiModelProperty(BlueprintModelDescription.URL)
@@ -41,11 +39,11 @@ public class BlueprintV4Request extends BlueprintV4Base {
     private String platform;
 
     public String getName() {
-        return name;
+        return name.getValue();
     }
 
     public void setName(String name) {
-        this.name = name;
+        this.name = new AuthNameString(name, AuthorizationResourceAction.DESCRIBE_CLUSTER_TEMPLATE);
     }
 
     public String getUrl() {

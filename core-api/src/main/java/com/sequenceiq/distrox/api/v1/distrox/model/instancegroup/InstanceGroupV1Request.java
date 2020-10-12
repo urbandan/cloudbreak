@@ -1,17 +1,17 @@
 package com.sequenceiq.distrox.api.v1.distrox.model.instancegroup;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+import org.glassfish.jersey.internal.guava.Sets;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.sequenceiq.authorization.annotation.ResourceObjectField;
+import com.sequenceiq.authorization.resource.AuthNameStringCollection;
 import com.sequenceiq.authorization.resource.AuthorizationResourceAction;
-import com.sequenceiq.authorization.resource.AuthorizationVariableType;
 import com.sequenceiq.cloudbreak.doc.ModelDescriptions.HostGroupModelDescription;
 import com.sequenceiq.cloudbreak.doc.ModelDescriptions.InstanceGroupModelDescription;
 import com.sequenceiq.distrox.api.v1.distrox.model.instancegroup.template.InstanceTemplateV1Request;
@@ -30,9 +30,8 @@ public class InstanceGroupV1Request extends InstanceGroupV1Base {
     private InstanceTemplateV1Request template;
 
     @ApiModelProperty(HostGroupModelDescription.RECIPE_NAMES)
-    @ResourceObjectField(action = AuthorizationResourceAction.DESCRIBE_RECIPE,
-            variableType = AuthorizationVariableType.NAME_LIST, skipAuthzOnNull = true)
-    private Set<String> recipeNames = new HashSet<>();
+    private AuthNameStringCollection recipeNames =
+            new AuthNameStringCollection(Sets.newHashSet(), AuthorizationResourceAction.DESCRIBE_RECIPE);
 
     public InstanceTemplateV1Request getTemplate() {
         return template;
@@ -43,10 +42,10 @@ public class InstanceGroupV1Request extends InstanceGroupV1Base {
     }
 
     public Set<String> getRecipeNames() {
-        return recipeNames;
+        return (Set<String>) recipeNames.getValue();
     }
 
     public void setRecipeNames(Set<String> recipeNames) {
-        this.recipeNames = recipeNames;
+        this.recipeNames = new AuthNameStringCollection(recipeNames, AuthorizationResourceAction.DESCRIBE_RECIPE);
     }
 }
