@@ -61,6 +61,15 @@ echo -e "\n\033[1;96m--- Change Dockerfile \033[0m\n"
 docker run -v "$(pwd)"/integcb/docker-containers/docker-redbeams:/integcb/docker-containers/docker-redbeams \
  busybox:1.31.1 /bin/sh -c "sed -i '/redbeams-\$VERSION/c\ADD redbeams.jar /' /integcb/docker-containers/docker-redbeams/Dockerfile"
 
+date
+echo -e "\n\033[1;96m--- Copy ../infrastructure-mock/build/libs/infrastructure-mock.jar to docker-infrastructure-mock directory\033[0m\n"
+cp -R  ../docker-infrastructure-mock/ ./integcb/docker-containers/docker-infrastructure-mock/
+cp ../infrastructure-mock/build/libs/infrastructure-mock.jar ./integcb/docker-containers/docker-infrastructure-mock
+date
+echo -e "\n\033[1;96m--- Change Dockerfile \033[0m\n"
+docker run -v "$(pwd)"/integcb/docker-containers/docker-infrastructure-mock:/integcb/docker-containers/docker-infrastructure-mock \
+ busybox:1.31.1 /bin/sh -c "sed -i '/infrastructure-mock-\$VERSION/c\ADD infrastructure-mock.jar /' /integcb/docker-containers/docker-infrastructure-mock/Dockerfile"
+
 echo -e "\n\033[1;96m--- Build docker images\033[0m\n"
 docker build -t docker-private.infra.cloudera.com/cloudera/cloudbreak:dev ./integcb/docker-containers/docker-cloudbreak & \
   docker build -t docker-private.infra.cloudera.com/cloudera/cloudbreak-datalake:dev ./integcb/docker-containers/docker-datalake & \
@@ -68,4 +77,5 @@ docker build -t docker-private.infra.cloudera.com/cloudera/cloudbreak:dev ./inte
   docker build -t docker-private.infra.cloudera.com/cloudera/cloudbreak-freeipa:dev ./integcb/docker-containers/docker-freeipa & \
   docker build -t docker-private.infra.cloudera.com/cloudera/cloudbreak-environment:dev ./integcb/docker-containers/docker-environment & \
   docker build -t docker-private.infra.cloudera.com/cloudera/cloudbreak-redbeams:dev ./integcb/docker-containers/docker-redbeams & \
+  docker build -t docker-private.infra.cloudera.com/cloudera/cloudbreak-infrastructure-mock:dev ./integcb/docker-containers/docker-infrastructure-mock & \
   wait

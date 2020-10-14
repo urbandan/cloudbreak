@@ -65,8 +65,7 @@ public class MockCloudProvider extends AbstractCloudProvider {
     public CredentialTestDto credential(CredentialTestDto credentialEntity) {
         MockParameters credentialParameters = new MockParameters();
         if (credentialEntity.getTestContext() instanceof MockedTestContext) {
-            MockedTestContext mockedTestContext = (MockedTestContext) credentialEntity.getTestContext();
-            credentialParameters.setMockEndpoint(mockedTestContext.getSparkServer().getEndpoint());
+            credentialParameters.setMockEndpoint("https://localhost");
         } else {
             credentialParameters.setMockEndpoint(
                     credentialEntity.getTestContext().get(HttpMock.class).getSparkServer().getEndpoint());
@@ -84,7 +83,7 @@ public class MockCloudProvider extends AbstractCloudProvider {
 
     @Override
     public DistroXTestDtoBase distrox(DistroXTestDtoBase distrox) {
-        return distrox.withGatewayPort(getSparkServerPort(distrox.getTestContext()));
+        return distrox.withGatewayPort(10090);
     }
 
     @Override
@@ -297,12 +296,12 @@ public class MockCloudProvider extends AbstractCloudProvider {
 
     @Override
     public Integer gatewayPort(StackTestDtoBase stackEntity) {
-        return getSparkServerPort(stackEntity.getTestContext());
+        return 10090;
     }
 
     @Override
     public Integer gatewayPort(FreeIpaTestDto stackEntity) {
-        return getSparkServerPort(stackEntity.getTestContext());
+        return 10090;
     }
 
     @Override
