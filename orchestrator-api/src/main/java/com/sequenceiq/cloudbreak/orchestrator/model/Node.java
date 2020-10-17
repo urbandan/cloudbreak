@@ -1,5 +1,8 @@
 package com.sequenceiq.cloudbreak.orchestrator.model;
 
+import java.util.List;
+import java.util.Map;
+
 public class Node {
     private final String privateIp;
 
@@ -23,17 +26,30 @@ public class Node {
 
     private String uuids;
 
+    // Used for generic attributes associated with the node. e.g. YARN attributes when running NMs, Spot vs non-spot, etc
+    private Map<String, List<String>> attributes;
+
     public Node(String privateIp, String publicIp, String instanceId, String instanceType, String fqdn, String hostGroup) {
         this(privateIp, publicIp, instanceId, instanceType, fqdn, null, hostGroup);
     }
 
+    public Node(String privateIp, String publicIp, String instanceId, String instanceType, String fqdn, String hostGroup, Map<String, List<String>> attributes) {
+        this(privateIp, publicIp, instanceId, instanceType, fqdn, null, hostGroup, attributes);
+    }
+
     public Node(String privateIp, String publicIp, String instanceId, String instanceType, String fqdn, String hostGroup, String dataVolumes,
             String serialIds, String fstab, String uuids) {
-        this(privateIp, publicIp, instanceId, instanceType, fqdn, null, hostGroup);
+        this(privateIp, publicIp, instanceId, instanceType, fqdn, hostGroup);
         this.dataVolumes = dataVolumes;
         this.serialIds = serialIds;
         this.fstab = fstab;
         this.uuids = uuids;
+    }
+
+    public Node(String privateIp, String publicIp, String instanceId, String instanceType, String fqdn, String domain, String hostGroup,
+            Map<String, List<String>> attributes) {
+        this(privateIp, publicIp, instanceId, instanceType, fqdn, domain, hostGroup);
+        this.attributes = attributes;
     }
 
     public Node(String privateIp, String publicIp, String instanceId, String instanceType, String fqdn, String domain, String hostGroup) {
@@ -98,6 +114,10 @@ public class Node {
         return instanceType;
     }
 
+    public Map<String, List<String>> getAttributes() {
+        return attributes;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("Node{");
@@ -112,6 +132,7 @@ public class Node {
         sb.append(", uuids='").append(uuids).append('\'');
         sb.append(", instanceId='").append(instanceId).append('\'');
         sb.append(", instanceType='").append(instanceType).append('\'');
+        sb.append(", attributes='").append(attributes).append('\'');
         sb.append('}');
         return sb.toString();
     }

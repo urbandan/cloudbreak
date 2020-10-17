@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -54,10 +55,13 @@ import com.sequenceiq.cloudbreak.cloud.model.ClouderaManagerRepo;
 import com.sequenceiq.cloudbreak.cloud.model.GatewayRecommendation;
 import com.sequenceiq.cloudbreak.cloud.model.InstanceCount;
 import com.sequenceiq.cloudbreak.cloud.model.ResizeRecommendation;
+import com.sequenceiq.cloudbreak.cmtemplate.configproviders.yarn.YarnConstants;
+import com.sequenceiq.cloudbreak.cmtemplate.configproviders.yarn.YarnRoles;
 import com.sequenceiq.cloudbreak.common.json.JsonUtil;
 import com.sequenceiq.cloudbreak.common.type.ClusterManagerType;
 import com.sequenceiq.cloudbreak.template.BlueprintProcessingException;
 import com.sequenceiq.cloudbreak.template.TemplatePreparationObject;
+import com.sequenceiq.cloudbreak.template.model.ServiceAttributes;
 import com.sequenceiq.cloudbreak.template.model.ServiceComponent;
 import com.sequenceiq.cloudbreak.template.processor.BlueprintTextProcessor;
 import com.sequenceiq.cloudbreak.template.processor.configuration.HostgroupConfigurations;
@@ -220,6 +224,17 @@ public class CmTemplateProcessor implements BlueprintTextProcessor {
                 ));
     }
 
+    private Map<String, Set<ServiceComponent>> getNonGatewayServicesByHostGroup() {
+        return getServiceComponentsByHostGroup().entrySet().stream()
+                .collect(toMap(
+                        Entry::getKey,
+                        e -> e.getValue().stream()
+                                .filter(i -> !i.getComponent().equalsIgnoreCase("GATEWAY"))
+                                .collect(toSet())
+                ));
+
+    }
+
     @Override
     public Map<String, Set<String>> getComponentsByHostGroup() {
         return getServiceComponentsByHostGroup().entrySet().stream()
@@ -258,8 +273,8 @@ public class CmTemplateProcessor implements BlueprintTextProcessor {
         return new AutoscaleRecommendation(time, load);
     }
 
-    private <T extends Enum<T>> Set<String> getRecommendationByBlacklist(Class<T> enumClass, boolean emptyServiceListBlacklisted) {
-        Map<String, Set<String>> componentsByHostGroup = getNonGatewayComponentsByHostGroup();
+    private <T extends Enum<T>> Set<String> getRecommendationByBlacklist(Class<T> enumClass,
+            boolean emptyServiceListBlacklisted, Map<String, Set<String>> componentsByHostGroup) {
         Set<String> recos = new HashSet<>();
         for (Entry<String, Set<String>> hostGroupServices : componentsByHostGroup.entrySet()) {
             if (emptyServiceListBlacklisted && hostGroupServices.getValue().isEmpty()) {
@@ -279,6 +294,11 @@ public class CmTemplateProcessor implements BlueprintTextProcessor {
         return recos;
     }
 
+    private <T extends Enum<T>> Set<String> getRecommendationByBlacklist(Class<T> enumClass, boolean emptyServiceListBlacklisted) {
+        Map<String, Set<String>> componentsByHostGroup = getNonGatewayComponentsByHostGroup();
+        return getRecommendationByBlacklist(enumClass, emptyServiceListBlacklisted, componentsByHostGroup);
+    }
+
     @Override
     public ResizeRecommendation recommendResize() {
         Set<String> upRecos = getRecommendationByBlacklist(BlackListedUpScaleRole.class, false);
@@ -289,6 +309,52 @@ public class CmTemplateProcessor implements BlueprintTextProcessor {
     @Override
     public String getStackVersion() {
         return cmTemplate.getCdhVersion();
+    }
+
+    @Override
+    public Map<String, Map<String, ServiceAttributes>> getHostGroupBasedServiceAttributes() {
+        // The only attributes required at the moment relate to the YARN NodeManager.
+        // This functionality can be moved to an interface / separated if additional components
+        // need this functionality.
+        Map<String, Set<ServiceComponent>> hgToNonGwServiceComponents = getNonGatewayServicesByHostGroup();
+        Map<String, Set<ServiceComponent>> hgToNonGwServiceComponentsWithYarnNMs = new HashMap<>();
+        for (Entry<String, Set<ServiceComponent>> entry : hgToNonGwServiceComponents.entrySet()) {
+            for (ServiceComponent sc : entry.getValue()) {
+                if (sc.getService().equalsIgnoreCase(YarnRoles.YARN) && sc.getComponent()
+                        .equalsIgnoreCase(YarnRoles.NODEMANAGER)) {
+                    hgToNonGwServiceComponentsWithYarnNMs.put(entry.getKey(), entry.getValue());
+                    break;
+                }
+            }
+        }
+        // We have the hostGroups without GATEWAY components with YARN NodeManagers
+        Map<String, Set<String>> componentsByHostGroup = hgToNonGwServiceComponentsWithYarnNMs.entrySet()
+                .stream().collect(
+                        toMap(
+                                Entry::getKey,
+                                e -> e.getValue().stream()
+                                .map(ServiceComponent::getComponent)
+                                .collect(Collectors.toUnmodifiableSet())
+                ));
+        // Re-using the current LoadBasedAutoScaling recommendation along with the above YARN filter.
+        Set<String> computeHostGroups = getRecommendationByBlacklist(BlackListedLoadBasedAutoscaleRole.class,
+                true, componentsByHostGroup);
+
+        Map<String, Map<String, ServiceAttributes>> result = new HashMap<>();
+
+        for (String hg : componentsByHostGroup.keySet()) {
+            Map<String, ServiceAttributes> m;
+            if (computeHostGroups.contains(hg)) {
+                m = Collections.singletonMap(YarnRoles.YARN, new ServiceAttributes(ServiceComponent.of(YarnRoles.YARN, YarnRoles.NODEMANAGER),
+                        Collections.singletonList(YarnConstants.ATTRIBUTE_COMPUTE)));
+            } else {
+                m = Collections.singletonMap(YarnRoles.YARN, new ServiceAttributes(ServiceComponent.of(YarnRoles.YARN, YarnRoles.NODEMANAGER),
+                        Collections.singletonList(YarnConstants.ATTRIBUTE_WORKER)));
+            }
+            result.put(hg, m);
+        }
+        LOGGER.debug("ServiceAttributes: {}", result);
+        return result;
     }
 
     @Override

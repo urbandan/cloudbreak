@@ -36,6 +36,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import com.cloudera.thunderhead.service.usermanagement.UserManagementProto.Account;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.common.ExecutorType;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.database.base.DatabaseType;
@@ -290,6 +291,7 @@ public class ClusterHostServiceRunner {
         KerberosConfig kerberosConfig = kerberosConfigService.get(stack.getEnvironmentCrn(), stack.getName()).orElse(null);
         saveCustomNameservers(stack, kerberosConfig, servicePillar);
         addKerberosConfig(servicePillar, kerberosConfig);
+        addHostAttributes(servicePillar, nodes);
         servicePillar.put("discovery", new SaltPillarProperties("/discovery/init.sls", singletonMap("platform", stack.cloudPlatform())));
         String virtualGroupsEnvironmentCrn = environmentConfigProvider.getParentEnvironmentCrn(stack.getEnvironmentCrn());
         boolean deployedInChildEnvironment = !virtualGroupsEnvironmentCrn.equals(stack.getEnvironmentCrn());
@@ -318,6 +320,22 @@ public class ClusterHostServiceRunner {
         decoratePillarWithJdbcConnectors(cluster, servicePillar);
 
         return new SaltConfig(servicePillar, grainPropertiesService.createGrainProperties(gatewayConfigs, cluster, nodes));
+    }
+
+    @VisibleForTesting
+    void addHostAttributes(Map<String, SaltPillarProperties> servicePillar, Set<Node> nodes) {
+        Map<String, Map<String, Object>> attributes = new HashMap<>();
+        for (Node node : nodes) {
+            Map<String, Object> hostAttributes = new HashMap<>();
+            if (node.getAttributes() != null) {
+                hostAttributes.put("attributes", node.getAttributes());
+            }
+            if (node.getHostGroup() != null) {
+                hostAttributes.put("hostGroup", node.getHostGroup());
+            }
+            attributes.put(node.getHostname(), hostAttributes);
+        }
+        servicePillar.put("hostattrs", new SaltPillarProperties("/nodes/hostattrs.sls", singletonMap("hostattrs", attributes)));
     }
 
     private void addKerberosConfig(Map<String, SaltPillarProperties> servicePillar, KerberosConfig kerberosConfig) throws IOException {

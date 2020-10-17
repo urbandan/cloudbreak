@@ -30,6 +30,7 @@ import org.springframework.stereotype.Component;
 import com.sequenceiq.cloudbreak.cloud.model.Image;
 import com.sequenceiq.cloudbreak.cloud.scheduler.CancellationException;
 import com.sequenceiq.cloudbreak.cluster.service.ClusterComponentConfigProvider;
+import com.sequenceiq.cloudbreak.cmtemplate.CmTemplateProcessorFactory;
 import com.sequenceiq.cloudbreak.common.exception.CloudbreakServiceException;
 import com.sequenceiq.cloudbreak.common.json.Json;
 import com.sequenceiq.cloudbreak.common.service.HostDiscoveryService;
@@ -58,6 +59,8 @@ import com.sequenceiq.cloudbreak.service.ComponentConfigProviderService;
 import com.sequenceiq.cloudbreak.service.GatewayConfigService;
 import com.sequenceiq.cloudbreak.service.orchestrator.OrchestratorService;
 import com.sequenceiq.cloudbreak.service.stack.StackService;
+import com.sequenceiq.cloudbreak.template.model.ServiceAttributes;
+import com.sequenceiq.cloudbreak.template.processor.BlueprintTextProcessor;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -111,6 +114,9 @@ public class ClusterBootstrapper {
 
     @Inject
     private SaltBootstrapFingerprintVersionChecker fingerprintVersionChecker;
+
+    @Inject
+    private CmTemplateProcessorFactory cmTemplateProcessorFactory;
 
     public void bootstrapMachines(Long stackId) throws CloudbreakException {
         Stack stack = stackService.getByIdWithListsInTransaction(stackId);
@@ -250,6 +256,8 @@ public class ClusterBootstrapper {
     private Set<Node> collectNodesForBootstrap(Stack stack) {
         Set<Node> nodes = new HashSet<>();
         String domain = hostDiscoveryService.determineDomain(stack.getCustomDomain(), stack.getName(), stack.isClusterNameAsSubdomain());
+        BlueprintTextProcessor blueprintTextProcessor = cmTemplateProcessorFactory.get(stack.getCluster().getBlueprint().getBlueprintText());
+        Map<String, Map<String, ServiceAttributes>> serviceAttributes = blueprintTextProcessor.getHostGroupBasedServiceAttributes();
 
         Map<String, AtomicLong> hostGroupNodeIndexes = new HashMap<>();
         Set<String> clusterNodeNames = stack.getNotTerminatedInstanceMetaDataList().stream()
@@ -262,7 +270,9 @@ public class ClusterBootstrapper {
                 String generatedHostName = clusterNodeNameGenerator.getNodeNameForInstanceMetadata(im, stack, hostGroupNodeIndexes, clusterNodeNames);
                 String instanceId = im.getInstanceId();
                 String instanceType = im.getInstanceGroup().getTemplate().getInstanceType();
-                nodes.add(new Node(im.getPrivateIp(), im.getPublicIpWrapper(), instanceId, instanceType, generatedHostName, domain, im.getInstanceGroupName()));
+                Map<String, List<String>> hgAttributes = getAttributesForHostGroup(im.getInstanceGroupName(), serviceAttributes);
+                nodes.add(new Node(im.getPrivateIp(), im.getPublicIpWrapper(), instanceId, instanceType,
+                        generatedHostName, domain, im.getInstanceGroupName(), hgAttributes));
             }
         }
         return nodes;
@@ -270,6 +280,12 @@ public class ClusterBootstrapper {
 
     public void bootstrapNewNodes(Long stackId, Set<String> upscaleCandidateAddresses, Collection<String> recoveryHostNames) throws CloudbreakException {
         Stack stack = stackService.getByIdWithListsInTransaction(stackId);
+        // TODO: Question for reviewer. Is it OK to access the blueprint in ClusterBootstrap?
+        //  If not, recommendations on how to make sure that the metadata file gets written out during
+        //  stack creation.
+        BlueprintTextProcessor blueprintTextProcessor = cmTemplateProcessorFactory.get(stack.getCluster().getBlueprint().getBlueprintText());
+        Map<String, Map<String, ServiceAttributes>> serviceAttributes = blueprintTextProcessor.getHostGroupBasedServiceAttributes();
+
         Set<Node> nodes = new HashSet<>();
         Set<Node> allNodes = new HashSet<>();
         boolean recoveredNodes = Integer.valueOf(recoveryHostNames.size()).equals(upscaleCandidateAddresses.size());
@@ -285,7 +301,7 @@ public class ClusterBootstrapper {
 
         Iterator<String> iterator = recoveryHostNames.iterator();
         for (InstanceMetaData im : metaDataSet) {
-            Node node = createNode(stack, im, clusterDomain, hostGroupNodeIndexes, clusterNodeNames);
+            Node node = createNode(stack, im, clusterDomain, hostGroupNodeIndexes, clusterNodeNames, serviceAttributes);
             if (upscaleCandidateAddresses.contains(im.getPrivateIp())) {
                 // use the hostname of the node we're recovering instead of generating a new one
                 // but only when we would have generated a hostname, otherwise use the cloud provider's default mechanism
@@ -357,15 +373,19 @@ public class ClusterBootstrapper {
      * Even if the domain has changed keep the rest of the nodes domain.
      * Note: if we recovered a node the private id is not the same as it is in the hostname
      */
-    private Node createNode(Stack stack, InstanceMetaData im, String domain, Map<String, AtomicLong> hostGroupNodeIndexes, Set<String> clusterNodeNames) {
+    private Node createNode(Stack stack, InstanceMetaData im, String domain, Map<String, AtomicLong> hostGroupNodeIndexes, Set<String> clusterNodeNames,
+            Map<String, Map<String, ServiceAttributes>> serviceAttributes) {
         String discoveryFQDN = im.getDiscoveryFQDN();
         String instanceId = im.getInstanceId();
         String instanceType = im.getInstanceGroup().getTemplate().getInstanceType();
+        Map<String, List<String>> hgAttributes = getAttributesForHostGroup(im.getInstanceGroupName(), serviceAttributes);
+
         if (isNoneBlank(discoveryFQDN)) {
-            return new Node(im.getPrivateIp(), im.getPublicIpWrapper(), instanceId, instanceType, im.getShortHostname(), domain, im.getInstanceGroupName());
+            return new Node(im.getPrivateIp(), im.getPublicIpWrapper(), instanceId, instanceType,
+                    im.getShortHostname(), domain, im.getInstanceGroupName(), hgAttributes);
         } else {
             String hostname = clusterNodeNameGenerator.getNodeNameForInstanceMetadata(im, stack, hostGroupNodeIndexes, clusterNodeNames);
-            return new Node(im.getPrivateIp(), im.getPublicIpWrapper(), instanceId, instanceType, hostname, domain, im.getInstanceGroupName());
+            return new Node(im.getPrivateIp(), im.getPublicIpWrapper(), instanceId, instanceType, hostname, domain, im.getInstanceGroupName(), hgAttributes);
         }
     }
 
@@ -373,5 +393,15 @@ public class ClusterBootstrapper {
         if (EXIT.equals(pollingResult)) {
             throw new CancellationException(cancelledMessage);
         }
+    }
+
+    private Map<String, List<String>> getAttributesForHostGroup(String hostGroup, Map<String, Map<String, ServiceAttributes>> serviceAttributes) {
+        Map<String, List<String>> hgAttributes = Optional.ofNullable(serviceAttributes.get(hostGroup)).orElse(Map.of())
+                .entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        v -> v.getValue().getAttributes()));
+        LOGGER.debug("Attributes for hostGroup={}: [{}]", hostGroup, hgAttributes);
+        return hgAttributes;
     }
 }

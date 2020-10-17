@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -20,6 +21,7 @@ import com.sequenceiq.cloudbreak.cloud.model.CloudCredential;
 import com.sequenceiq.cloudbreak.cloud.model.VolumeSetAttributes;
 import com.sequenceiq.cloudbreak.cloud.model.VolumeSetAttributes.Volume;
 import com.sequenceiq.cloudbreak.cluster.util.ResourceAttributeUtil;
+import com.sequenceiq.cloudbreak.cmtemplate.CmTemplateProcessorFactory;
 import com.sequenceiq.cloudbreak.converter.spi.CredentialToCloudCredentialConverter;
 import com.sequenceiq.cloudbreak.domain.Resource;
 import com.sequenceiq.cloudbreak.domain.stack.Stack;
@@ -31,6 +33,8 @@ import com.sequenceiq.cloudbreak.dto.credential.Credential;
 import com.sequenceiq.cloudbreak.orchestrator.model.Node;
 import com.sequenceiq.cloudbreak.service.environment.credential.CredentialClientService;
 import com.sequenceiq.cloudbreak.service.stack.InstanceMetaDataService;
+import com.sequenceiq.cloudbreak.template.model.ServiceAttributes;
+import com.sequenceiq.cloudbreak.template.processor.BlueprintTextProcessor;
 
 @Service
 public class StackUtil {
@@ -47,8 +51,13 @@ public class StackUtil {
     @Inject
     private CredentialClientService credentialClientService;
 
+    @Inject
+    private CmTemplateProcessorFactory cmTemplateProcessorFactory;
+
     public Set<Node> collectNodes(Stack stack) {
         Set<Node> agents = new HashSet<>();
+        BlueprintTextProcessor blueprintTextProcessor = cmTemplateProcessorFactory.get(stack.getCluster().getBlueprint().getBlueprintText());
+        Map<String, Map<String, ServiceAttributes>> serviceAttributes = blueprintTextProcessor.getHostGroupBasedServiceAttributes();
         for (InstanceGroup instanceGroup : stack.getInstanceGroups()) {
             if (instanceGroup.getNodeCount() != 0) {
                 for (InstanceMetaData im : instanceGroup.getNotDeletedInstanceMetaDataSet()) {
@@ -56,7 +65,7 @@ public class StackUtil {
                         String instanceId = im.getInstanceId();
                         String instanceType = instanceGroup.getTemplate().getInstanceType();
                         agents.add(new Node(im.getPrivateIp(), im.getPublicIp(), instanceId, instanceType,
-                                im.getDiscoveryFQDN(), im.getInstanceGroupName()));
+                                im.getDiscoveryFQDN(), im.getInstanceGroupName(), getAttributesForHostGroup(im.getInstanceGroupName(), serviceAttributes)));
                     }
                 }
             }
@@ -65,6 +74,8 @@ public class StackUtil {
     }
 
     public Set<Node> collectReachableNodes(Stack stack) {
+        BlueprintTextProcessor blueprintTextProcessor = cmTemplateProcessorFactory.get(stack.getCluster().getBlueprint().getBlueprintText());
+        Map<String, Map<String, ServiceAttributes>> serviceAttributes = blueprintTextProcessor.getHostGroupBasedServiceAttributes();
         return stack.getInstanceGroups()
                 .stream()
                 .filter(ig -> ig.getNodeCount() != 0)
@@ -74,13 +85,15 @@ public class StackUtil {
                     String instanceId = im.getInstanceId();
                     String instanceType = im.getInstanceGroup().getTemplate().getInstanceType();
                     return new Node(im.getPrivateIp(), im.getPublicIp(), instanceId, instanceType,
-                            im.getDiscoveryFQDN(), im.getInstanceGroupName());
+                            im.getDiscoveryFQDN(), im.getInstanceGroupName(), getAttributesForHostGroup(im.getInstanceGroupName(), serviceAttributes));
                 })
                 .collect(Collectors.toSet());
     }
 
     public Set<Node> collectNodesFromHostnames(Stack stack, Set<String> hostnames) {
         Set<Node> agents = new HashSet<>();
+        BlueprintTextProcessor blueprintTextProcessor = cmTemplateProcessorFactory.get(stack.getCluster().getBlueprint().getBlueprintText());
+        Map<String, Map<String, ServiceAttributes>> serviceAttributes = blueprintTextProcessor.getHostGroupBasedServiceAttributes();
         for (InstanceGroup instanceGroup : stack.getInstanceGroups()) {
             if (instanceGroup.getNodeCount() != 0) {
                 for (InstanceMetaData im : instanceGroup.getReachableInstanceMetaDataSet()) {
@@ -88,7 +101,7 @@ public class StackUtil {
                         String instanceId = im.getInstanceId();
                         String instanceType = instanceGroup.getTemplate().getInstanceType();
                         agents.add(new Node(im.getPrivateIp(), im.getPublicIp(), instanceId, instanceType,
-                                im.getDiscoveryFQDN(), im.getInstanceGroupName()));
+                                im.getDiscoveryFQDN(), im.getInstanceGroupName(), getAttributesForHostGroup(im.getInstanceGroupName(), serviceAttributes)));
                     }
                 }
             }
@@ -203,5 +216,14 @@ public class StackUtil {
     public CloudCredential getCloudCredential(Stack stack) {
         Credential credential = credentialClientService.getByEnvironmentCrn(stack.getEnvironmentCrn());
         return credentialConverter.convert(credential);
+    }
+
+    private Map<String, List<String>> getAttributesForHostGroup(String hostGroup, Map<String, Map<String, ServiceAttributes>> serviceAttributes) {
+        Map<String, List<String>> hgAttributes = Optional.ofNullable(serviceAttributes.get(hostGroup)).orElse(Map.of())
+                .entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        v -> v.getValue().getAttributes()));
+        return hgAttributes;
     }
 }
