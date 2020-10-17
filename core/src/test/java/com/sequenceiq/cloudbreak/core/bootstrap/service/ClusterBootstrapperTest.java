@@ -2,6 +2,7 @@ package com.sequenceiq.cloudbreak.core.bootstrap.service;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,12 +17,15 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.sequenceiq.cloudbreak.cloud.model.Image;
 import com.sequenceiq.cloudbreak.cluster.service.ClusterComponentConfigProvider;
+import com.sequenceiq.cloudbreak.cmtemplate.CmTemplateProcessor;
+import com.sequenceiq.cloudbreak.cmtemplate.CmTemplateProcessorFactory;
 import com.sequenceiq.cloudbreak.common.service.HostDiscoveryService;
 import com.sequenceiq.cloudbreak.core.CloudbreakImageNotFoundException;
 import com.sequenceiq.cloudbreak.core.bootstrap.service.host.HostBootstrapApiCheckerTask;
 import com.sequenceiq.cloudbreak.core.bootstrap.service.host.HostClusterAvailabilityCheckerTask;
 import com.sequenceiq.cloudbreak.core.bootstrap.service.host.context.HostBootstrapApiContext;
 import com.sequenceiq.cloudbreak.core.bootstrap.service.host.context.HostOrchestratorClusterContext;
+import com.sequenceiq.cloudbreak.domain.Blueprint;
 import com.sequenceiq.cloudbreak.domain.Template;
 import com.sequenceiq.cloudbreak.domain.stack.Stack;
 import com.sequenceiq.cloudbreak.domain.stack.cluster.Cluster;
@@ -88,9 +92,13 @@ public class ClusterBootstrapperTest {
     @Mock
     private HostOrchestrator hostOrchestrator;
 
+    @Mock
+    private CmTemplateProcessorFactory cmTemplateProcessorFactory;
+
     @Test
     public void shouldUseReachableInstances() throws CloudbreakException, CloudbreakImageNotFoundException {
         when(stackService.getByIdWithListsInTransaction(1L)).thenReturn(stack);
+        when(cmTemplateProcessorFactory.get(any(String.class))).thenReturn(mock(CmTemplateProcessor.class));
         InstanceMetaData instanceMetaData = new InstanceMetaData();
         instanceMetaData.setPrivateIp("1.1.1.1");
         instanceMetaData.setPublicIp("2.2.2.2");
@@ -106,6 +114,9 @@ public class ClusterBootstrapperTest {
         when(stack.getCustomDomain()).thenReturn("CUSTOM_DOMAIN");
         Cluster cluster = new Cluster();
         cluster.setGateway(new Gateway());
+        Blueprint mockBlueprint = mock(Blueprint.class);
+        when(mockBlueprint.getBlueprintText()).thenReturn("");
+        cluster.setBlueprint(mockBlueprint);
         when(stack.getCluster()).thenReturn(cluster);
         when(gatewayConfigService.getAllGatewayConfigs(any())).thenReturn(List.of(gatewayConfig));
         when(componentConfigProviderService.getImage(anyLong())).thenReturn(image);
