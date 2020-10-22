@@ -1,6 +1,6 @@
 package com.sequenceiq.cloudbreak.cloud.azure;
 
-import static com.sequenceiq.common.api.type.ResourceType.AZURE_PRIVATE_DNS_ZONE;
+import static com.sequenceiq.common.api.type.ResourceType.AZURE_VIRTUAL_NETWORK_LINK;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -29,7 +29,7 @@ import com.sequenceiq.cloudbreak.cloud.exception.CloudConnectorException;
 import com.sequenceiq.cloudbreak.cloud.model.CloudCredential;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AzureDnsZoneServiceTest {
+public class AzureNetworkLinkServiceTest {
 
     private static final Long STACK_ID = 12L;
 
@@ -51,7 +51,7 @@ public class AzureDnsZoneServiceTest {
     private AzureResourceIdProviderService azureResourceIdProviderService;
 
     @InjectMocks
-    private AzureDnsZoneService underTest;
+    private AzureNetworkLinkService underTest;
 
     private AuthenticatedContext ac;
 
@@ -73,12 +73,11 @@ public class AzureDnsZoneServiceTest {
     }
 
     @Test
-    public void testCheckOrCreateWhenAllResourceExists() {
+    public void testCheckOrCreateWhenNetworkLinkExists() {
 
-        when(client.checkIfDnsZonesDeployed(any(), any())).thenReturn(true);
         when(client.checkIfNetworkLinksDeployed(any(), any(), any())).thenReturn(true);
 
-        underTest.checkOrCreateDnsZones(ac, client, getNetworkView(), RESOURCE_GROUP, Collections.emptyMap());
+        underTest.checkOrCreateNetworkLinks(ac, client, getNetworkView(), RESOURCE_GROUP, Collections.emptyMap());
 
         verify(azureResourceCreationHelperService, times(0)).persistCloudResource(any(), any(), any(), any());
         verify(azureResourceCreationHelperService, times(0)).updateCloudResource(any(), any(), any(), any(), any());
@@ -89,28 +88,12 @@ public class AzureDnsZoneServiceTest {
     }
 
     @Test
-    public void testCheckOrCreateWhenDnsZoneResourceExistsAndNetworkLinkNotExists() {
+    public void testCheckOrCreateWhenNetworkLinkNotExistsButRequested() {
 
-        when(client.checkIfDnsZonesDeployed(any(), any())).thenReturn(true);
         when(client.checkIfNetworkLinksDeployed(any(), any(), any())).thenReturn(false);
+        when(azureResourceCreationHelperService.isRequested(DEPLOYMENT_ID, AZURE_VIRTUAL_NETWORK_LINK)).thenReturn(true);
 
-        underTest.checkOrCreateDnsZones(ac, client, getNetworkView(), RESOURCE_GROUP, Collections.emptyMap());
-
-        verify(azureResourceCreationHelperService, times(0)).persistCloudResource(any(), any(), any(), any());
-        verify(azureResourceCreationHelperService, times(0)).updateCloudResource(any(), any(), any(), any(), any());
-        verify(azureResourceCreationHelperService, times(0)).isRequested(any(), any());
-        verify(azureResourceCreationHelperService, times(0)).isCreated(any(), any());
-        verify(azureResourceCreationHelperService, times(0)).pollForCreation(any(), any(), any(), any(), any(), any(), any());
-    }
-
-    @Test
-    public void testCheckOrCreateWhenDnsZoneResourceNotExistsButRequested() {
-
-        when(client.checkIfDnsZonesDeployed(any(), any())).thenReturn(false);
-        when(client.checkIfNetworkLinksDeployed(any(), any(), any())).thenReturn(true);
-        when(azureResourceCreationHelperService.isRequested(DEPLOYMENT_ID, AZURE_PRIVATE_DNS_ZONE)).thenReturn(true);
-
-        underTest.checkOrCreateDnsZones(ac, client, getNetworkView(), RESOURCE_GROUP, Collections.emptyMap());
+        underTest.checkOrCreateNetworkLinks(ac, client, getNetworkView(), RESOURCE_GROUP, Collections.emptyMap());
 
         verify(azureResourceCreationHelperService, times(0)).persistCloudResource(any(), any(), any(), any());
         verify(azureResourceCreationHelperService, times(0)).updateCloudResource(any(), any(), any(), any(), any());
@@ -120,14 +103,13 @@ public class AzureDnsZoneServiceTest {
     }
 
     @Test
-    public void testCheckOrCreateWhenDnsZoneResourceNotExistsAndNotRequestedButAlreadyCreatedInDatabase() {
+    public void testCheckOrCreateWhenNetworkLinkNotExistsAndNotRequestedButAlreadyCreatedInDatabase() {
 
-        when(client.checkIfDnsZonesDeployed(any(), any())).thenReturn(false);
-        when(client.checkIfNetworkLinksDeployed(any(), any(), any())).thenReturn(true);
-        when(azureResourceCreationHelperService.isRequested(DEPLOYMENT_ID, AZURE_PRIVATE_DNS_ZONE)).thenReturn(false);
-        when(azureResourceCreationHelperService.isCreated(DEPLOYMENT_ID, AZURE_PRIVATE_DNS_ZONE)).thenReturn(true);
+        when(client.checkIfNetworkLinksDeployed(any(), any(), any())).thenReturn(false);
+        when(azureResourceCreationHelperService.isRequested(DEPLOYMENT_ID, AZURE_VIRTUAL_NETWORK_LINK)).thenReturn(false);
+        when(azureResourceCreationHelperService.isCreated(DEPLOYMENT_ID, AZURE_VIRTUAL_NETWORK_LINK)).thenReturn(true);
 
-        underTest.checkOrCreateDnsZones(ac, client, getNetworkView(), RESOURCE_GROUP, Collections.emptyMap());
+        underTest.checkOrCreateNetworkLinks(ac, client, getNetworkView(), RESOURCE_GROUP, Collections.emptyMap());
 
         verify(azureResourceCreationHelperService, times(0)).persistCloudResource(any(), any(), any(), any());
         verify(azureResourceCreationHelperService, times(2)).updateCloudResource(any(), any(), any(), any(), any());
@@ -137,14 +119,13 @@ public class AzureDnsZoneServiceTest {
     }
 
     @Test
-    public void testCheckOrCreateWhenDnsZoneResourceNotExistsAndNotRequestedAndNotCreatedInDatabase() {
+    public void testCheckOrCreateWhenNetworkLinkNotExistsAndNotRequestedAndNotCreatedInDatabase() {
 
-        when(client.checkIfDnsZonesDeployed(any(), any())).thenReturn(false);
-        when(client.checkIfNetworkLinksDeployed(any(), any(), any())).thenReturn(true);
-        when(azureResourceCreationHelperService.isRequested(DEPLOYMENT_ID, AZURE_PRIVATE_DNS_ZONE)).thenReturn(false);
-        when(azureResourceCreationHelperService.isCreated(DEPLOYMENT_ID, AZURE_PRIVATE_DNS_ZONE)).thenReturn(false);
+        when(client.checkIfNetworkLinksDeployed(any(), any(), any())).thenReturn(false);
+        when(azureResourceCreationHelperService.isRequested(DEPLOYMENT_ID, AZURE_VIRTUAL_NETWORK_LINK)).thenReturn(false);
+        when(azureResourceCreationHelperService.isCreated(DEPLOYMENT_ID, AZURE_VIRTUAL_NETWORK_LINK)).thenReturn(false);
 
-        underTest.checkOrCreateDnsZones(ac, client, getNetworkView(), RESOURCE_GROUP, Collections.emptyMap());
+        underTest.checkOrCreateNetworkLinks(ac, client, getNetworkView(), RESOURCE_GROUP, Collections.emptyMap());
 
         verify(azureResourceCreationHelperService, times(1)).persistCloudResource(any(), any(), any(), any());
         verify(azureResourceCreationHelperService, times(1)).updateCloudResource(any(), any(), any(), any(), any());
@@ -154,15 +135,14 @@ public class AzureDnsZoneServiceTest {
     }
 
     @Test(expected = CloudConnectorException.class)
-    public void testCheckOrCreateWhenDnsZoneResourceNotExistsAndNotRequestedAndNotCreatedInDatabaseAndError() {
+    public void testCheckOrCreateWhenNetworkLinkNotExistsAndNotRequestedAndNotCreatedInDatabaseAndError() {
 
-        when(client.checkIfDnsZonesDeployed(any(), any())).thenReturn(false);
-        when(client.checkIfNetworkLinksDeployed(any(), any(), any())).thenReturn(true);
-        when(azureResourceCreationHelperService.isRequested(DEPLOYMENT_ID, AZURE_PRIVATE_DNS_ZONE)).thenReturn(false);
-        when(azureResourceCreationHelperService.isCreated(DEPLOYMENT_ID, AZURE_PRIVATE_DNS_ZONE)).thenReturn(false);
+        when(client.checkIfNetworkLinksDeployed(any(), any(), any())).thenReturn(false);
+        when(azureResourceCreationHelperService.isRequested(DEPLOYMENT_ID, AZURE_VIRTUAL_NETWORK_LINK)).thenReturn(false);
+        when(azureResourceCreationHelperService.isCreated(DEPLOYMENT_ID, AZURE_VIRTUAL_NETWORK_LINK)).thenReturn(false);
         doThrow(new CloudConnectorException("", null)).when(azureResourceCreationHelperService).deployTemplate(any(), any());
 
-        underTest.checkOrCreateDnsZones(ac, client, getNetworkView(), RESOURCE_GROUP, Collections.emptyMap());
+        underTest.checkOrCreateNetworkLinks(ac, client, getNetworkView(), RESOURCE_GROUP, Collections.emptyMap());
 
         verify(azureResourceCreationHelperService, times(1)).persistCloudResource(any(), any(), any(), any());
         verify(azureResourceCreationHelperService, times(0)).updateCloudResource(any(), any(), any(), any(), any());
