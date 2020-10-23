@@ -218,8 +218,8 @@ public class StackUtil {
         return credentialConverter.convert(credential);
     }
 
-    private Map<String, List<String>> getAttributesForHostGroup(String hostGroup, Map<String, Map<String, ServiceAttributes>> serviceAttributes) {
-        Map<String, List<String>> hgAttributes = Optional.ofNullable(serviceAttributes.get(hostGroup)).orElse(Map.of())
+    private Map<String, Map<String, String>> getAttributesForHostGroup(String hostGroup, Map<String, Map<String, ServiceAttributes>> serviceAttributes) {
+        Map<String, Map<String, String>> hgAttributes = Optional.ofNullable(serviceAttributes.get(hostGroup)).orElse(Map.of())
                 .entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,

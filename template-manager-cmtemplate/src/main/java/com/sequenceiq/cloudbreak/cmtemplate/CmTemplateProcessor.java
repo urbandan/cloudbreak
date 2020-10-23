@@ -346,10 +346,10 @@ public class CmTemplateProcessor implements BlueprintTextProcessor {
             Map<String, ServiceAttributes> m;
             if (computeHostGroups.contains(hg)) {
                 m = Collections.singletonMap(YarnRoles.YARN, new ServiceAttributes(ServiceComponent.of(YarnRoles.YARN, YarnRoles.NODEMANAGER),
-                        Collections.singletonList(YarnConstants.ATTRIBUTE_COMPUTE)));
+                        Collections.singletonMap(YarnConstants.ATTRIBUTE_NAME_NODE_INSTANCE_TYPE, YarnConstants.ATTRIBUTE_NODE_INSTANCE_TYPE_COMPUTE)));
             } else {
                 m = Collections.singletonMap(YarnRoles.YARN, new ServiceAttributes(ServiceComponent.of(YarnRoles.YARN, YarnRoles.NODEMANAGER),
-                        Collections.singletonList(YarnConstants.ATTRIBUTE_WORKER)));
+                        Collections.singletonMap(YarnConstants.ATTRIBUTE_NAME_NODE_INSTANCE_TYPE, YarnConstants.ATTRIBUTE_NODE_INSTANCE_TYPE_WORKER)));
             }
             result.put(hg, m);
         }

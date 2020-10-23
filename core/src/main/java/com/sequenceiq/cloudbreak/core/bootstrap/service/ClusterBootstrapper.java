@@ -270,7 +270,7 @@ public class ClusterBootstrapper {
                 String generatedHostName = clusterNodeNameGenerator.getNodeNameForInstanceMetadata(im, stack, hostGroupNodeIndexes, clusterNodeNames);
                 String instanceId = im.getInstanceId();
                 String instanceType = im.getInstanceGroup().getTemplate().getInstanceType();
-                Map<String, List<String>> hgAttributes = getAttributesForHostGroup(im.getInstanceGroupName(), serviceAttributes);
+                Map<String, Map<String, String>> hgAttributes = getAttributesForHostGroup(im.getInstanceGroupName(), serviceAttributes);
                 nodes.add(new Node(im.getPrivateIp(), im.getPublicIpWrapper(), instanceId, instanceType,
                         generatedHostName, domain, im.getInstanceGroupName(), hgAttributes));
             }
@@ -378,7 +378,7 @@ public class ClusterBootstrapper {
         String discoveryFQDN = im.getDiscoveryFQDN();
         String instanceId = im.getInstanceId();
         String instanceType = im.getInstanceGroup().getTemplate().getInstanceType();
-        Map<String, List<String>> hgAttributes = getAttributesForHostGroup(im.getInstanceGroupName(), serviceAttributes);
+        Map<String, Map<String, String>> hgAttributes = getAttributesForHostGroup(im.getInstanceGroupName(), serviceAttributes);
 
         if (isNoneBlank(discoveryFQDN)) {
             return new Node(im.getPrivateIp(), im.getPublicIpWrapper(), instanceId, instanceType,
@@ -395,8 +395,8 @@ public class ClusterBootstrapper {
         }
     }
 
-    private Map<String, List<String>> getAttributesForHostGroup(String hostGroup, Map<String, Map<String, ServiceAttributes>> serviceAttributes) {
-        Map<String, List<String>> hgAttributes = Optional.ofNullable(serviceAttributes.get(hostGroup)).orElse(Map.of())
+    private Map<String, Map<String, String>> getAttributesForHostGroup(String hostGroup, Map<String, Map<String, ServiceAttributes>> serviceAttributes) {
+        Map<String, Map<String, String>> hgAttributes = Optional.ofNullable(serviceAttributes.get(hostGroup)).orElse(Map.of())
                 .entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,

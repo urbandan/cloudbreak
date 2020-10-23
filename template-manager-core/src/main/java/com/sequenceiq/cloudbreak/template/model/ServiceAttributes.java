@@ -1,6 +1,6 @@
 package com.sequenceiq.cloudbreak.template.model;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -11,14 +11,14 @@ public class ServiceAttributes {
 
     private final ServiceComponent serviceComponent;
 
-    private final List<String> attributes;
+    private final Map<String, String> attributes;
 
     /**
      *
      * @param serviceComponent the service component (e.g. YARN, NODEMANAGER)
      * @param attributes list of attributes. interpretation will typically be left up to the component.
      */
-    public ServiceAttributes(ServiceComponent serviceComponent, List<String> attributes) {
+    public ServiceAttributes(ServiceComponent serviceComponent, Map<String, String> attributes) {
         this.serviceComponent = serviceComponent;
         this.attributes = attributes;
     }
@@ -27,7 +27,7 @@ public class ServiceAttributes {
         return serviceComponent;
     }
 
-    public List<String> getAttributes() {
+    public Map<String, String> getAttributes() {
         return attributes;
     }
 

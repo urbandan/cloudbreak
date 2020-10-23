@@ -1,6 +1,5 @@
 package com.sequenceiq.cloudbreak.orchestrator.model;
 
-import java.util.List;
 import java.util.Map;
 
 public class Node {
@@ -27,13 +26,14 @@ public class Node {
     private String uuids;
 
     // Used for generic attributes associated with the node. e.g. YARN attributes when running NMs, Spot vs non-spot, etc
-    private Map<String, List<String>> attributes;
+    private Map<String, Map<String, String>> attributes;
 
     public Node(String privateIp, String publicIp, String instanceId, String instanceType, String fqdn, String hostGroup) {
         this(privateIp, publicIp, instanceId, instanceType, fqdn, null, hostGroup);
     }
 
-    public Node(String privateIp, String publicIp, String instanceId, String instanceType, String fqdn, String hostGroup, Map<String, List<String>> attributes) {
+    public Node(String privateIp, String publicIp, String instanceId, String instanceType, String fqdn,
+            String hostGroup, Map<String, Map<String, String>> attributes) {
         this(privateIp, publicIp, instanceId, instanceType, fqdn, null, hostGroup, attributes);
     }
 
@@ -47,7 +47,7 @@ public class Node {
     }
 
     public Node(String privateIp, String publicIp, String instanceId, String instanceType, String fqdn, String domain, String hostGroup,
-            Map<String, List<String>> attributes) {
+            Map<String, Map<String, String>> attributes) {
         this(privateIp, publicIp, instanceId, instanceType, fqdn, domain, hostGroup);
         this.attributes = attributes;
     }
@@ -114,7 +114,7 @@ public class Node {
         return instanceType;
     }
 
-    public Map<String, List<String>> getAttributes() {
+    public Map<String, Map<String, String>> getAttributes() {
         return attributes;
     }
 

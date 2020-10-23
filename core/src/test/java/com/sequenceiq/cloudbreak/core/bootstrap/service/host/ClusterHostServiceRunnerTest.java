@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,7 +22,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import com.google.common.collect.Lists;
 import com.sequenceiq.cloudbreak.api.service.ExposedServiceCollector;
 import com.sequenceiq.cloudbreak.auth.altus.GrpcUmsClient;
 import com.sequenceiq.cloudbreak.auth.altus.VirtualGroupService;
@@ -223,8 +223,9 @@ public class ClusterHostServiceRunnerTest {
     @Test
     public void testAddHostAttributes() {
 
-        Map<String, List<String>> yarnAttrs = new HashMap<>();
-        yarnAttrs.put(YarnRoles.YARN, Lists.newArrayList(YarnConstants.ATTRIBUTE_COMPUTE));
+        Map<String, Map<String, String>> yarnAttrs = new HashMap<>();
+        yarnAttrs.put(YarnRoles.YARN,
+                Collections.singletonMap(YarnConstants.ATTRIBUTE_NAME_NODE_INSTANCE_TYPE, YarnConstants.ATTRIBUTE_NODE_INSTANCE_TYPE_COMPUTE));
 
         Set<Node> nodes = new HashSet<>();
         nodes.add(new Node("privateIp", "publicIp", "instanceId", "instanceType", "fqdn1", "hg1"));
@@ -258,10 +259,11 @@ public class ClusterHostServiceRunnerTest {
         nodeValue = (Map<String, Object>) values.get("fqdn3");
         assertEquals(2, nodeValue.size());
         assertEquals("hg3", nodeValue.get("hostGroup"));
-        Map<String, List<String>> attrs  = (Map<String, List<String>>) nodeValue.get("attributes");
+        Map<String, Map<String, String>> attrs  = (Map<String, Map<String, String>>) nodeValue.get("attributes");
         assertEquals(1, attrs.size());
         assertEquals(1, attrs.get(YarnRoles.YARN).size());
-        assertEquals(YarnConstants.ATTRIBUTE_COMPUTE, attrs.get(YarnRoles.YARN).get(0));
+        assertEquals(YarnConstants.ATTRIBUTE_NAME_NODE_INSTANCE_TYPE, attrs.get(YarnRoles.YARN).entrySet().iterator().next().getKey());
+        assertEquals(YarnConstants.ATTRIBUTE_NODE_INSTANCE_TYPE_COMPUTE, attrs.get(YarnRoles.YARN).entrySet().iterator().next().getValue());
 
         nodeValue = (Map<String, Object>) values.get("fqdn4");
         assertEquals(0, nodeValue.size());
