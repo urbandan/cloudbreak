@@ -533,20 +533,24 @@ public class CmTemplateProcessorTest {
 
         serviceAttributesMap = attrs.get("worker");
         assertEquals(1, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().size());
-        assertEquals(YarnConstants.ATTRIBUTE_WORKER, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().get(0));
+        assertEquals(YarnConstants.ATTRIBUTE_NAME_NODE_INSTANCE_TYPE, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().keySet().iterator().next());
+        assertEquals(YarnConstants.ATTRIBUTE_NODE_INSTANCE_TYPE_WORKER, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().values().iterator().next());
 
         serviceAttributesMap = attrs.get("compute");
         assertEquals(1, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().size());
-        assertEquals(YarnConstants.ATTRIBUTE_COMPUTE, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().get(0));
+        assertEquals(YarnConstants.ATTRIBUTE_NAME_NODE_INSTANCE_TYPE, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().keySet().iterator().next());
+        assertEquals(YarnConstants.ATTRIBUTE_NODE_INSTANCE_TYPE_COMPUTE, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().values().iterator().next());
 
         // Verify that custom hostGroup names also get marked as "compute" or "worker"
         serviceAttributesMap = attrs.get("customnm1");
         assertEquals(1, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().size());
-        assertEquals(YarnConstants.ATTRIBUTE_WORKER, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().get(0));
+        assertEquals(YarnConstants.ATTRIBUTE_NAME_NODE_INSTANCE_TYPE, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().keySet().iterator().next());
+        assertEquals(YarnConstants.ATTRIBUTE_NODE_INSTANCE_TYPE_WORKER, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().values().iterator().next());
 
         serviceAttributesMap = attrs.get("customnm2");
         assertEquals(1, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().size());
-        assertEquals(YarnConstants.ATTRIBUTE_COMPUTE, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().get(0));
+        assertEquals(YarnConstants.ATTRIBUTE_NAME_NODE_INSTANCE_TYPE, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().keySet().iterator().next());
+        assertEquals(YarnConstants.ATTRIBUTE_NODE_INSTANCE_TYPE_COMPUTE, serviceAttributesMap.get(YarnRoles.YARN).getAttributes().values().iterator().next());
     }
 
     private static void assertSortedEquals(Set<?> expected, Set<?> actual) {
