@@ -1,30 +1,24 @@
 package com.sequenceiq.cloudbreak.cloud.azure.task.image;
 
 import com.sequenceiq.cloudbreak.cloud.azure.client.AzureClient;
+import com.sequenceiq.cloudbreak.cloud.azure.image.AzureImageDetails;
 
 public class AzureManagedImageCreationCheckerContext {
 
     private final AzureClient azureClient;
 
-    private final String resourceGroupName;
+    private final AzureImageDetails azureImageDetails;
 
-    private final String imageName;
-
-    public AzureManagedImageCreationCheckerContext(AzureClient azureClient, String resourceGroupName, String imageName) {
+    public AzureManagedImageCreationCheckerContext(AzureImageDetails azureImageDetails, AzureClient azureClient) {
+        this.azureImageDetails = azureImageDetails;
         this.azureClient = azureClient;
-        this.resourceGroupName = resourceGroupName;
-        this.imageName = imageName;
     }
 
     public AzureClient getAzureClient() {
         return azureClient;
     }
 
-    public String getResourceGroupName() {
-        return resourceGroupName;
-    }
-
-    public String getImageName() {
-        return imageName;
+    public AzureImageDetails getAzureImageDetails() {
+        return azureImageDetails;
     }
 }

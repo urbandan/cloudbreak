@@ -12,11 +12,8 @@ import com.microsoft.azure.CloudException;
 import com.microsoft.azure.management.compute.VirtualMachineCustomImage;
 import com.sequenceiq.cloudbreak.cloud.azure.AzureImage;
 import com.sequenceiq.cloudbreak.cloud.azure.client.AzureClient;
-
-import com.sequenceiq.cloudbreak.cloud.azure.resource.AzureResourceIdProviderService;
 import com.sequenceiq.cloudbreak.cloud.azure.task.image.AzureManagedImageCreationCheckerContext;
 import com.sequenceiq.cloudbreak.cloud.azure.task.image.AzureManagedImageCreationPoller;
-import com.sequenceiq.cloudbreak.cloud.azure.util.CustomVMImageNameProvider;
 import com.sequenceiq.cloudbreak.cloud.context.AuthenticatedContext;
 import com.sequenceiq.cloudbreak.cloud.exception.CloudConnectorException;
 import com.sequenceiq.cloudbreak.cloud.model.CloudResource;
@@ -37,95 +34,69 @@ public class AzureImageService {
     private PersistenceNotifier persistenceNotifier;
 
     @Inject
-    private AzureResourceIdProviderService azureResourceIdProviderService;
-
-    @Inject
     private AzureManagedImageCreationPoller azureManagedImageCreationPoller;
 
     @Inject
     private AzureManagedImageService azureManagedImageService;
 
-    @Inject
-    private CustomVMImageNameProvider customVMImageNameProvider;
-
-    public AzureImage getCustomImageId(String resourceGroup, String fromVhdUri, AuthenticatedContext ac, boolean createIfNotFound, AzureClient client) {
-        String region = getRegion(ac);
-        String imageName = getImageName(region, fromVhdUri);
-        String imageId = getImageId(resourceGroup, client, imageName);
-        AzureManagedImageCreationCheckerContext checkerContext = new AzureManagedImageCreationCheckerContext(client, resourceGroup, imageName);
-
-        if (getCustomImage(resourceGroup, client, imageName).isPresent() || isRequested(imageId)) {
-            LOGGER.debug("Custom image found in '{}' resource group with name '{}'", resourceGroup, imageName);
-            azureManagedImageCreationPoller.startPolling(ac, checkerContext);
-            return new AzureImage(imageId, imageName, true);
-        } else {
-            LOGGER.debug("Custom image NOT found in '{}' resource group with name '{}', creating it now: {}", resourceGroup, imageName, createIfNotFound);
-            if (createIfNotFound) {
-                saveImage(ac, imageName, imageId);
-                Optional<VirtualMachineCustomImage> customImage;
-                try {
-                    customImage = Optional.of(client.createCustomImage(imageName, resourceGroup, fromVhdUri, region));
-                } catch (CloudException e) {
-                    customImage = handleImageCreationException(resourceGroup, ac, client, imageName, imageId, checkerContext, e);
-                }
-                return customImage
-                        .map(image -> createNewAzureImageAndNotify(ac, image))
-                        .orElseThrow(() -> new CloudConnectorException("Failed to create custom image."));
-            } else {
-                return null;
-            }
+    public Optional<AzureImage> findCustomImage(AzureImageDetails azureImageDetails, AzureClient client, AuthenticatedContext ac) {
+        if (findCustomImage(azureImageDetails, client).isEmpty() && !wasCreateRequested(azureImageDetails)) {
+            return Optional.empty();
         }
+
+        LOGGER.debug("Custom image found in '{}' resource group with name '{}'", azureImageDetails.getResourceGroup(), azureImageDetails.getImageName());
+        azureManagedImageCreationPoller.startPolling(ac, new AzureManagedImageCreationCheckerContext(azureImageDetails, client));
+        return Optional.of(new AzureImage(azureImageDetails.getImageId(), azureImageDetails.getImageName(), true));
     }
 
-    private AzureImage createNewAzureImageAndNotify(AuthenticatedContext ac, VirtualMachineCustomImage customImage) {
-        updateImageStatus(ac, customImage.name(), customImage.id(), CommonStatus.CREATED);
+    public AzureImage createCustomImage(AzureImageDetails azureImageDetails, String fromVhdUri, AzureClient client, AuthenticatedContext ac) {
+        saveCustomImage(ac, azureImageDetails.getImageName(), azureImageDetails.getImageId());
+        Optional<VirtualMachineCustomImage> customImage;
+        AzureManagedImageCreationCheckerContext checkerContext = new AzureManagedImageCreationCheckerContext(azureImageDetails, client);
+        try {
+            customImage = Optional.of(
+                    client.createCustomImage(azureImageDetails.getImageName(), azureImageDetails.getResourceGroup(), fromVhdUri, azureImageDetails.getRegion()));
+        } catch (CloudException e) {
+            customImage = handleCustomImageCreationException(azureImageDetails, ac, client, checkerContext, e);
+        }
+        return customImage
+                .map(image -> createCustomImageAndNotify(ac, image))
+                .orElseThrow(() -> new CloudConnectorException("Failed to create custom image."));
+    }
+
+    private AzureImage createCustomImageAndNotify(AuthenticatedContext ac, VirtualMachineCustomImage customImage) {
+        updateCustomImageStatus(ac, customImage.name(), customImage.id(), CommonStatus.CREATED);
         return new AzureImage(customImage.id(), customImage.name(), true);
     }
 
-    private Optional<VirtualMachineCustomImage> handleImageCreationException(String resourceGroup, AuthenticatedContext ac, AzureClient client,
-            String imageName, String imageId, AzureManagedImageCreationCheckerContext checkerContext, CloudException e) {
+    private Optional<VirtualMachineCustomImage> handleCustomImageCreationException(AzureImageDetails azureImageDetails, AuthenticatedContext ac,
+            AzureClient client, AzureManagedImageCreationCheckerContext checkerContext, CloudException e) {
         Optional<VirtualMachineCustomImage> customImage;
         azureManagedImageCreationPoller.startPolling(ac, checkerContext);
-        customImage = getCustomImage(resourceGroup, client, imageName);
+        customImage = findCustomImage(azureImageDetails, client);
         if (customImage.isEmpty()) {
             LOGGER.error("Failed to create custom image.", e);
-            updateImageStatus(ac, imageName, imageId, CommonStatus.FAILED);
+            updateCustomImageStatus(ac, azureImageDetails.getImageName(), azureImageDetails.getImageId(), CommonStatus.FAILED);
             throw new CloudConnectorException(e);
         }
         return customImage;
     }
 
-    private Optional<VirtualMachineCustomImage> getCustomImage(String resourceGroup, AzureClient client, String imageName) {
-        return azureManagedImageService.findVirtualMachineCustomImage(resourceGroup, imageName, client);
+    private Optional<VirtualMachineCustomImage> findCustomImage(AzureImageDetails azureImageDetails, AzureClient client) {
+        return azureManagedImageService.findVirtualMachineCustomImage(azureImageDetails, client);
     }
 
-    private String getImageName(String region, String fromVhdUri) {
-        return customVMImageNameProvider.get(region, fromVhdUri);
-    }
-
-    private void saveImage(AuthenticatedContext ac, String imageName, String imageId) {
+    private void saveCustomImage(AuthenticatedContext ac, String imageName, String imageId) {
         LOGGER.debug("Persisting image with REQUESTED status: {}", imageId);
         persistenceNotifier.notifyAllocation(buildCloudResource(imageName, imageId, CommonStatus.REQUESTED), ac.getCloudContext());
     }
 
-    private void updateImageStatus(AuthenticatedContext ac, String imageName, String imageId, CommonStatus commonStatus) {
-        LOGGER.debug("Updating image status to {}: {}", commonStatus.toString(), imageId);
+    private void updateCustomImageStatus(AuthenticatedContext ac, String imageName, String imageId, CommonStatus commonStatus) {
+        LOGGER.debug("Updating image status to {}: {}", commonStatus, imageId);
         persistenceNotifier.notifyUpdate(buildCloudResource(imageName, imageId, commonStatus), ac.getCloudContext());
     }
 
-    private String getRegion(AuthenticatedContext ac) {
-        return ac.getCloudContext()
-                .getLocation()
-                .getRegion()
-                .getRegionName();
-    }
-
-    private String getImageId(String resourceGroup, AzureClient client, String imageName) {
-        return azureResourceIdProviderService.generateImageId(client.getCurrentSubscription()
-                .subscriptionId(), resourceGroup, imageName);
-    }
-
-    public CloudResource buildCloudResource(String name, String id, CommonStatus status) {
+    private CloudResource buildCloudResource(String name, String id, CommonStatus status) {
         return CloudResource.builder()
                 .name(name)
                 .status(status)
@@ -135,7 +106,7 @@ public class AzureImageService {
                 .build();
     }
 
-    private boolean isRequested(String imageId) {
-        return resourcePersistenceRetriever.notifyRetrieve(imageId, CommonStatus.REQUESTED, ResourceType.AZURE_MANAGED_IMAGE).isPresent();
+    private boolean wasCreateRequested(AzureImageDetails azureImageDetails) {
+        return resourcePersistenceRetriever.notifyRetrieve(azureImageDetails.getImageId(), CommonStatus.REQUESTED, ResourceType.AZURE_MANAGED_IMAGE).isPresent();
     }
 }

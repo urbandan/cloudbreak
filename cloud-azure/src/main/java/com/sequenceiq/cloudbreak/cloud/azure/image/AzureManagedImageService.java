@@ -14,7 +14,9 @@ public class AzureManagedImageService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AzureManagedImageService.class);
 
-    public Optional<VirtualMachineCustomImage> findVirtualMachineCustomImage(String resourceGroup, String imageName, AzureClient client) {
+    public Optional<VirtualMachineCustomImage> findVirtualMachineCustomImage(AzureImageDetails azureImageDetails, AzureClient client) {
+        String imageName = azureImageDetails.getImageName();
+        String resourceGroup = azureImageDetails.getResourceGroup();
         VirtualMachineCustomImage image = client.findImage(resourceGroup, imageName);
         if (image != null) {
             LOGGER.debug("Custom image {} is present in resource group {}", imageName, resourceGroup);

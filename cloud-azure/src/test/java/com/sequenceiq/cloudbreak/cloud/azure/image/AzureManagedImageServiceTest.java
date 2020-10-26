@@ -37,11 +37,11 @@ public class AzureManagedImageServiceTest {
 
     @Test
     public void testGetVirtualMachineCustomImageShouldReturnTheImageWhenExistsOnProviderSide() {
+        AzureImageDetails azureImageDetails = new AzureImageDetails(IMAGE_NAME, "imageId", "region", RESOURCE_GROUP);
         VirtualMachineCustomImage image = Mockito.mock(VirtualMachineCustomImage.class);
-
         when(azureClient.findImage(RESOURCE_GROUP, IMAGE_NAME)).thenReturn(image);
 
-        Optional<VirtualMachineCustomImage> actual = underTest.findVirtualMachineCustomImage(RESOURCE_GROUP, IMAGE_NAME, azureClient);
+        Optional<VirtualMachineCustomImage> actual = underTest.findVirtualMachineCustomImage(azureImageDetails, azureClient);
 
         assertTrue(actual.isPresent());
         assertEquals(image, actual.get());
@@ -49,10 +49,11 @@ public class AzureManagedImageServiceTest {
     }
 
     @Test
-    public void testGetVirtualMachineCustomImageShouldReturnTheImageWhenDoesNotExistsOnProviderSide() {
+    public void testGetVirtualMachineCustomImageShouldReturnTheImageWhenDoesNotExistOnProviderSide() {
+        AzureImageDetails azureImageDetails = new AzureImageDetails(IMAGE_NAME, "imageId", "region", RESOURCE_GROUP);
         when(azureClient.findImage(RESOURCE_GROUP, IMAGE_NAME)).thenReturn(null);
 
-        Optional<VirtualMachineCustomImage> actual = underTest.findVirtualMachineCustomImage(RESOURCE_GROUP, IMAGE_NAME, azureClient);
+        Optional<VirtualMachineCustomImage> actual = underTest.findVirtualMachineCustomImage(azureImageDetails, azureClient);
 
         assertTrue(actual.isEmpty());
         verify(azureClient).findImage(RESOURCE_GROUP, IMAGE_NAME);

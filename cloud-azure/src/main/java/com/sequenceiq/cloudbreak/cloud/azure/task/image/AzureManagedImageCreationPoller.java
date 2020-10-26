@@ -32,7 +32,7 @@ public class AzureManagedImageCreationPoller {
     public void startPolling(AuthenticatedContext ac, AzureManagedImageCreationCheckerContext checkerContext) {
         PollTask<Boolean> managedImageCreationStatusCheckerTask = azurePollTaskFactory.managedImageCreationCheckerTask(ac, checkerContext);
         try {
-            LOGGER.info("Start polling managed image creation: {}", checkerContext.getImageName());
+            LOGGER.info("Start polling managed image creation: {}", checkerContext.getAzureImageDetails().getImageName());
             syncPollingScheduler.schedule(managedImageCreationStatusCheckerTask, MANAGED_IMAGE_CREATION_CHECKING_INTERVAL,
                     MANAGED_IMAGE_CREATION_CHECKING_MAX_ATTEMPT, MAX_FAILURE_TOLERANT);
         } catch (Exception e) {

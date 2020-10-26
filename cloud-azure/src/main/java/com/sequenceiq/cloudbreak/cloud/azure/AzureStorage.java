@@ -29,9 +29,11 @@ import com.microsoft.azure.management.storage.StorageAccount;
 import com.microsoft.azure.management.storage.StorageAccounts;
 import com.microsoft.azure.management.storage.implementation.StorageAccountInner;
 import com.sequenceiq.cloudbreak.cloud.azure.client.AzureClient;
-import com.sequenceiq.cloudbreak.cloud.azure.image.AzureImageService;
 import com.sequenceiq.cloudbreak.cloud.azure.connector.resource.AzureStorageAccountBuilderService;
 import com.sequenceiq.cloudbreak.cloud.azure.connector.resource.StorageAccountParameters;
+import com.sequenceiq.cloudbreak.cloud.azure.image.AzureImageDetailService;
+import com.sequenceiq.cloudbreak.cloud.azure.image.AzureImageDetails;
+import com.sequenceiq.cloudbreak.cloud.azure.image.AzureImageService;
 import com.sequenceiq.cloudbreak.cloud.azure.storage.SkuTypeResolver;
 import com.sequenceiq.cloudbreak.cloud.azure.view.AzureCredentialView;
 import com.sequenceiq.cloudbreak.cloud.context.AuthenticatedContext;
@@ -72,6 +74,9 @@ public class AzureStorage {
     @Inject
     private AzureImageService azureImageService;
 
+    @Inject
+    private AzureImageDetailService azureImageDetailService;
+
     public ArmAttachedStorageOption getArmAttachedStorageOption(Map<String, String> parameters) {
         String attachedStorageOption = parameters.get("attachedStorageOption");
         if (Strings.isNullOrEmpty(attachedStorageOption)) {
@@ -88,15 +93,19 @@ public class AzureStorage {
         String imageResourceGroupName = azureResourceGroupMetadataProvider.getImageResourceGroupName(ac.getCloudContext(), stack);
         AzureCredentialView acv = new AzureCredentialView(ac.getCloudCredential());
         String imageStorageName = getImageStorageName(acv, ac.getCloudContext(), stack);
-        String imageBlobUri = client.getImageBlobUri(imageResourceGroupName, imageStorageName, IMAGES_CONTAINER, imageName);
-        return getCustomImage(imageBlobUri, imageResourceGroupName, ac, client);
-    }
 
-    private AzureImage getCustomImage(String vhd, String imageResourceGroupName, AuthenticatedContext ac, AzureClient client) {
-        AzureImage image = azureImageService.getCustomImageId(imageResourceGroupName, vhd, ac, true, client);
-        String customImageId = image.getId();
-        LOGGER.debug("Custom image id: {}", customImageId);
-        return image;
+        AzureImageDetails azureImageDetails = azureImageDetailService.getImageDetails(imageResourceGroupName, imageName, ac, client);
+        Optional<AzureImage> foundImage = azureImageService.findCustomImage(azureImageDetails, client, ac);
+        if (foundImage.isPresent()) {
+            LOGGER.info("Custom image with id {} already exists in the target resource group {}, bypassing VHD check!",
+                    foundImage.get().getId(), imageResourceGroupName);
+            return foundImage.get();
+        }
+
+        String imageBlobUri = client.getImageBlobUri(imageResourceGroupName, imageStorageName, IMAGES_CONTAINER, imageName);
+        AzureImage createdImage = azureImageService.createCustomImage(azureImageDetails, imageBlobUri, client, ac);
+        LOGGER.debug("Custom image id: {}", createdImage.getId());
+        return createdImage;
     }
 
     public String getImageStorageName(AzureCredentialView acv, CloudContext cloudContext, CloudStack cloudStack) {

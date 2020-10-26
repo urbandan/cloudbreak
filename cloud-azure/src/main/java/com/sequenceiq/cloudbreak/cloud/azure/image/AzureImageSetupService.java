@@ -10,7 +10,6 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import com.microsoft.azure.management.compute.VirtualMachineCustomImage;
 import com.microsoft.azure.storage.blob.CopyState;
@@ -21,7 +20,6 @@ import com.sequenceiq.cloudbreak.cloud.azure.AzureResourceGroupMetadataProvider;
 import com.sequenceiq.cloudbreak.cloud.azure.AzureStorage;
 import com.sequenceiq.cloudbreak.cloud.azure.AzureStorageAccountService;
 import com.sequenceiq.cloudbreak.cloud.azure.client.AzureClient;
-import com.sequenceiq.cloudbreak.cloud.azure.util.CustomVMImageNameProvider;
 import com.sequenceiq.cloudbreak.cloud.azure.view.AzureCredentialView;
 import com.sequenceiq.cloudbreak.cloud.context.AuthenticatedContext;
 import com.sequenceiq.cloudbreak.cloud.context.CloudContext;
@@ -52,14 +50,15 @@ public class AzureImageSetupService {
     private AzureManagedImageService azureManagedImageService;
 
     @Inject
-    private CustomVMImageNameProvider customVMImageNameProvider;
+    private AzureImageDetailService azureImageDetailService;
 
     public ImageStatusResult checkImageStatus(AuthenticatedContext ac, CloudStack stack, Image image) {
         CloudContext cloudContext = ac.getCloudContext();
         String imageResourceGroupName = azureResourceGroupMetadataProvider.getImageResourceGroupName(cloudContext, stack);
         AzureClient client = ac.getParameter(AzureClient.class);
 
-        Optional<VirtualMachineCustomImage> customImage = findVirtualMachineCustomImage(image, imageResourceGroupName, client, ac);
+        AzureImageDetails azureImageDetails = azureImageDetailService.getImageDetails(imageResourceGroupName, image.getImageName(), ac, client);
+        Optional<VirtualMachineCustomImage> customImage = azureManagedImageService.findVirtualMachineCustomImage(azureImageDetails, client);
         if (customImage.isPresent()) {
             LOGGER.info("Custom image with id {} already exists in the target resource group {}, bypassing VHD copy check!", customImage.get().id(),
                     imageResourceGroupName);
@@ -99,16 +98,6 @@ public class AzureImageSetupService {
         }
     }
 
-    private Optional<VirtualMachineCustomImage> findVirtualMachineCustomImage(Image image, String imageResourceGroupName, AzureClient client,
-            AuthenticatedContext ac) {
-        String imageName = customVMImageNameProvider.get(ac.getCloudContext().getLocation().getRegion().getRegionName(), image.getImageName());
-        return azureManagedImageService.findVirtualMachineCustomImage(imageResourceGroupName, imageName, client);
-    }
-
-    private boolean isCustomImageAvailable(AzureImage customImage) {
-        return customImage != null && !StringUtils.isEmpty(customImage.getId());
-    }
-
     private boolean isCopyStatusFailed(CopyState copyState) {
         return CopyStatus.ABORTED.equals(copyState.getStatus()) || CopyStatus.INVALID.equals(copyState.getStatus());
     }
@@ -119,10 +108,11 @@ public class AzureImageSetupService {
         String imageStorageName = armStorage.getImageStorageName(new AzureCredentialView(ac.getCloudCredential()), cloudContext, stack);
         String imageResourceGroupName = azureResourceGroupMetadataProvider.getImageResourceGroupName(cloudContext, stack);
 
-        AzureImage customImage = azureImageService.getCustomImageId(imageResourceGroupName, image.getImageName(), ac, false, client);
-        if (isCustomImageAvailable(customImage)) {
+        AzureImageDetails azureImageDetails = azureImageDetailService.getImageDetails(imageResourceGroupName, image.getImageName(), ac, client);
+        Optional<AzureImage> foundImage = azureImageService.findCustomImage(azureImageDetails, client, ac);
+        if (foundImage.isPresent()) {
             LOGGER.info("Custom image with id {} already exists in the target resource group {}, bypassing VHD check!",
-                    customImage.getId(), imageResourceGroupName);
+                    foundImage.get().getId(), imageResourceGroupName);
             return;
         }
 
