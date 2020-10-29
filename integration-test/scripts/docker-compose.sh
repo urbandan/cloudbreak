@@ -26,10 +26,6 @@ date
 echo -e "\n\033[1;96m--- Start thunderhead mock\033[0m\n"
 $INTEGCB_LOCATION/.deps/bin/docker-compose --compatibility up -d thunderhead-mock
 
-#date
-#echo -e "\n\033[1;96m--- Start infrastructure mock\033[0m\n"
-#$INTEGCB_LOCATION/.deps/bin/docker-compose --compatibility up -d infrastructure-mock
-
 date
 echo -e "\n\033[1;96m--- Start cloudbreak\033[0m\n"
 cd $INTEGCB_LOCATION
