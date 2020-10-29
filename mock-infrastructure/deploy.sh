@@ -13,6 +13,7 @@ debug() {
 }
 
 new_version() {
+  # Build docker and push to hortonworks repo
   git checkout $VERSION
   debug "building docker image for version: $VERSION"
   INTERNAL_IMAGE_NAME=${INTERNAL_IMAGE_NAME:-${DOCKER_IMAGE}}

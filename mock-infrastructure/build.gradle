@@ -30,8 +30,8 @@ springBoot {
 }
 
 bootJar {
-  baseName = 'infrastructure-mock'
-  archiveName = 'infrastructure-mock.jar'
+  baseName = 'mock-infrastructure'
+  archiveName = 'mock-infrastructure.jar'
   manifest {
     def grgit = Grgit.open(currentDir: project.projectDir)
     attributes "Implementation-Version": grgit.describe()

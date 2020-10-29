@@ -11,7 +11,7 @@
     </appender>
 
     <appender name="CB_FILE_BASED" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>infrastructure-mock-log/infrastructure-mock.log</file>
+        <file>mock-infrastructure-log/mock-infrastructure.log</file>
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>${INTEGRATION_TEST_LOG_LEVEL:-OFF}</level>
         </filter>
