@@ -28,9 +28,9 @@ public class FreeIpaNodeHealthCheckHandler extends ITResponse {
 
     private HttpStatus status = HttpStatus.OK;
 
-    public FreeIpaNodeHealthCheckHandler() {
-        setHealthy();
-    }
+//    public FreeIpaNodeHealthCheckHandler() {
+//        setHealthy();
+//    }
 
     public void setHealthy() {
         setStatusOfFreeipa(HttpStatus.OK);
