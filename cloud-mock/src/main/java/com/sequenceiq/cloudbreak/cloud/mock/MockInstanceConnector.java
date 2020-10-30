@@ -32,6 +32,9 @@ public class MockInstanceConnector implements InstanceConnector {
     @Inject
     private MockCredentialViewFactory mockCredentialViewFactory;
 
+    @Inject
+    private MockUrlFactory mockUrlFactory;
+
     @Override
     public List<CloudVmInstanceStatus> start(AuthenticatedContext authenticatedContext, List<CloudResource> resources, List<CloudInstance> vms) {
         List<CloudVmInstanceStatus> cloudVmInstanceStatuses = new ArrayList<>();
@@ -43,7 +46,7 @@ public class MockInstanceConnector implements InstanceConnector {
         MockCredentialView mockCredentialView = mockCredentialViewFactory.createCredetialView(authenticatedContext.getCloudCredential());
         LOGGER.info("start instance statuses to mock spi, server address: " + mockCredentialView.getMockEndpoint());
         try {
-            MockUrlFactory.get("/spi/start_instances").post(Entity.entity(null, MediaType.APPLICATION_JSON_TYPE), String.class);
+            mockUrlFactory.get("/spi/start_instances").post(Entity.entity(null, MediaType.APPLICATION_JSON_TYPE), String.class);
         } catch (Exception e) {
             LOGGER.error("Error when instances got started", e);
         }
@@ -61,7 +64,7 @@ public class MockInstanceConnector implements InstanceConnector {
         MockCredentialView mockCredentialView = mockCredentialViewFactory.createCredetialView(authenticatedContext.getCloudCredential());
         LOGGER.info("stop instance statuses to mock spi, server address: " + mockCredentialView.getMockEndpoint());
         try {
-            MockUrlFactory.get("/spi/stop_instances").post(null, String.class);
+            mockUrlFactory.get("/spi/stop_instances").post(null, String.class);
         } catch (Exception e) {
             LOGGER.error("Error when instances got stopped", e);
         }
@@ -80,7 +83,7 @@ public class MockInstanceConnector implements InstanceConnector {
         MockCredentialView mockCredentialView = mockCredentialViewFactory.createCredetialView(authenticatedContext.getCloudCredential());
         LOGGER.info("start instance statuses to mock spi, server address: " + mockCredentialView.getMockEndpoint());
         try {
-            MockUrlFactory.get("/spi/reboot_instances").post(null, String.class);
+            mockUrlFactory.get("/spi/reboot_instances").post(null, String.class);
         } catch (Exception e) {
             LOGGER.error("Error when instances got started", e);
         }
@@ -93,7 +96,7 @@ public class MockInstanceConnector implements InstanceConnector {
         try {
             MockCredentialView mockCredentialView = mockCredentialViewFactory.createCredetialView(authenticatedContext.getCloudCredential());
             LOGGER.debug("Collect instance statuses from mock spi, server address: " + mockCredentialView.getMockEndpoint());
-            CloudVmInstanceStatus[] cloudVmInstanceStatusArray = MockUrlFactory.get("/spi/cloud_instance_statuses")
+            CloudVmInstanceStatus[] cloudVmInstanceStatusArray = mockUrlFactory.get("/spi/cloud_instance_statuses")
                     .post(null, CloudVmInstanceStatus[].class);
             LOGGER.debug("Collected instance statuses: " + Arrays.toString(cloudVmInstanceStatusArray));
             List<CloudVmInstanceStatus> cloudVmInstanceStatuses = new ArrayList<>();
@@ -121,7 +124,7 @@ public class MockInstanceConnector implements InstanceConnector {
 
     private CloudVmInstanceStatus getVmInstanceStatus(AuthenticatedContext authenticatedContext, CloudInstance instance, String operation) {
         try {
-            Response response = MockUrlFactory.get("spi/" + instance.getInstanceId() + "/" + operation).get();
+            Response response = mockUrlFactory.get("spi/" + instance.getInstanceId() + "/" + operation).get();
             if (response.getStatus() != HttpStatus.OK.value()) {
                 throw new RuntimeException(operation + "'s http status should be OK but got " + response.getStatus());
             }

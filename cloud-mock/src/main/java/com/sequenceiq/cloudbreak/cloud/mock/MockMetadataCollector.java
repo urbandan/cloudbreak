@@ -26,13 +26,16 @@ public class MockMetadataCollector implements MetadataCollector {
     @Inject
     private MockCredentialViewFactory mockCredentialViewFactory;
 
+    @Inject
+    private MockUrlFactory mockUrlFactory;
+
     @Override
     public List<CloudVmMetaDataStatus> collect(AuthenticatedContext authenticatedContext, List<CloudResource> resources, List<CloudInstance> vms,
             List<CloudInstance> knownInstances) {
         MockCredentialView mockCredentialView = mockCredentialViewFactory.createCredetialView(authenticatedContext.getCloudCredential());
         LOGGER.info("Collect metadata from mock spi, server address: " + mockCredentialView.getMockEndpoint());
         try {
-            CloudVmMetaDataStatus[] response = MockUrlFactory
+            CloudVmMetaDataStatus[] response = mockUrlFactory
                     .get("/spi/cloud_metadata_statuses")
                     .post(Entity.entity(vms, MediaType.APPLICATION_JSON_TYPE), CloudVmMetaDataStatus[].class);
             return Arrays.asList(response);

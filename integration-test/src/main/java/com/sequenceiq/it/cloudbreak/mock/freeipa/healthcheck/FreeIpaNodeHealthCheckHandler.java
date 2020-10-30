@@ -1,21 +1,12 @@
 package com.sequenceiq.it.cloudbreak.mock.freeipa.healthcheck;
 
-import java.security.KeyManagementException;
-import java.security.SecureRandom;
+import javax.inject.Inject;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.WebTarget;
-
-import org.glassfish.jersey.SslConfigurator;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-import com.sequenceiq.cloudbreak.client.CertificateTrustManager;
-import com.sequenceiq.cloudbreak.client.RestClientUtil;
 import com.sequenceiq.freeipa.client.healthcheckmodel.CheckResult;
-import com.sequenceiq.it.cloudbreak.exception.TestFailException;
+import com.sequenceiq.it.cloudbreak.mock.ExecuteQueryToMockInfrastructure;
 import com.sequenceiq.it.cloudbreak.mock.ITResponse;
 
 import spark.Request;
@@ -28,9 +19,8 @@ public class FreeIpaNodeHealthCheckHandler extends ITResponse {
 
     private HttpStatus status = HttpStatus.OK;
 
-//    public FreeIpaNodeHealthCheckHandler() {
-//        setHealthy();
-//    }
+    @Inject
+    private ExecuteQueryToMockInfrastructure executeQueryToMockInfrastructure;
 
     public void setHealthy() {
         setStatusOfFreeipa(HttpStatus.OK);
@@ -41,19 +31,7 @@ public class FreeIpaNodeHealthCheckHandler extends ITResponse {
     }
 
     private void setStatusOfFreeipa(HttpStatus status) {
-        CertificateTrustManager.SavingX509TrustManager x509TrustManager = new CertificateTrustManager.SavingX509TrustManager();
-        TrustManager[] trustManagers = {x509TrustManager};
-        SSLContext sslContext = SslConfigurator.newInstance().createSSLContext();
-        try {
-            sslContext.init(null, trustManagers, new SecureRandom());
-        } catch (KeyManagementException e) {
-            throw new TestFailException("Cannot init SSL Context: " + e.getMessage(), e);
-        }
-        Client client = RestClientUtil.createClient(sslContext, false);
-        WebTarget target = client.target(String.format("https://%s:%d", "localhost", 10090));
-        target = target.path("/ipa/status/configure").queryParam("status", status.name());
-        try (javax.ws.rs.core.Response ignore = target.request().get()) {
-        }
+        executeQueryToMockInfrastructure.call("/ipa/status/configure", w -> w.queryParam("status", status.name()));
     }
 
     @Override

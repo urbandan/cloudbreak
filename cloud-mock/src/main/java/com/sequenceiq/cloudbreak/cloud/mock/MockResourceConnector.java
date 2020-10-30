@@ -59,6 +59,9 @@ public class MockResourceConnector implements ResourceConnector<Object> {
     @Inject
     private CloudResourceHelper cloudResourceHelper;
 
+    @Inject
+    private MockUrlFactory mockUrlFactory;
+
     @Override
     public List<CloudResourceStatus> launch(AuthenticatedContext authenticatedContext, CloudStack stack, PersistenceNotifier persistenceNotifier,
             AdjustmentType adjustmentType, Long threshold) {
@@ -90,7 +93,7 @@ public class MockResourceConnector implements ResourceConnector<Object> {
 
     private Iterator<String> getInstanceIdIterator(AuthenticatedContext authenticatedContext) {
         try {
-            CloudVmInstanceStatus[] cloudVmInstanceStatusArray = MockUrlFactory.get("/spi/cloud_instance_statuses").post(null, CloudVmInstanceStatus[].class);
+            CloudVmInstanceStatus[] cloudVmInstanceStatusArray = mockUrlFactory.get("/spi/cloud_instance_statuses").post(null, CloudVmInstanceStatus[].class);
             List<String> instanceIds = Arrays.stream(cloudVmInstanceStatusArray)
                     .filter(instanceStatus -> InstanceStatus.STARTED == instanceStatus.getStatus())
                     .map(CloudVmInstanceStatus::getCloudInstance)
@@ -204,7 +207,7 @@ public class MockResourceConnector implements ResourceConnector<Object> {
     public List<CloudResourceStatus> downscale(AuthenticatedContext authenticatedContext, CloudStack stack, List<CloudResource> resources,
             List<CloudInstance> vms, Object resourcesToRemove) {
         try {
-            MockUrlFactory.get("/spi/terminate_instances").post(Entity.entity(vms, MediaType.APPLICATION_JSON_TYPE), String.class);
+            mockUrlFactory.get("/spi/terminate_instances").post(Entity.entity(vms, MediaType.APPLICATION_JSON_TYPE), String.class);
         } catch (KeyManagementException e) {
             throw new RuntimeException("rest error", e);
         }
