@@ -4,6 +4,7 @@ import javax.inject.Inject;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.base.parameter.network.GcpNetworkV4Parameters;
 import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.base.parameter.stack.GcpStackV4Parameters;
@@ -14,6 +15,8 @@ import com.sequenceiq.distrox.api.v1.distrox.model.instancegroup.template.Instan
 import com.sequenceiq.environment.api.v1.credential.model.parameters.gcp.GcpCredentialParameters;
 import com.sequenceiq.environment.api.v1.credential.model.parameters.gcp.JsonParameters;
 import com.sequenceiq.environment.api.v1.credential.model.parameters.gcp.P12Parameters;
+import com.sequenceiq.environment.api.v1.environment.model.EnvironmentNetworkGcpParams;
+import com.sequenceiq.environment.api.v1.environment.model.request.SecurityAccessRequest;
 import com.sequenceiq.it.cloudbreak.CloudbreakClient;
 import com.sequenceiq.it.cloudbreak.cloud.v4.AbstractCloudProvider;
 import com.sequenceiq.it.cloudbreak.context.TestContext;
@@ -30,8 +33,11 @@ import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXInstanceTem
 import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXNetworkTestDto;
 import com.sequenceiq.it.cloudbreak.dto.distrox.instancegroup.DistroXVolumeTestDto;
 import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentNetworkTestDto;
+import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentSecurityAccessTestDto;
+import com.sequenceiq.it.cloudbreak.dto.environment.EnvironmentTestDto;
 import com.sequenceiq.it.cloudbreak.dto.imagecatalog.ImageCatalogTestDto;
 import com.sequenceiq.it.cloudbreak.dto.sdx.SdxCloudStorageTestDto;
+import com.sequenceiq.it.cloudbreak.dto.sdx.SdxInternalTestDto;
 import com.sequenceiq.it.cloudbreak.dto.stack.StackTestDtoBase;
 import com.sequenceiq.it.cloudbreak.dto.telemetry.TelemetryTestDto;
 import com.sequenceiq.it.cloudbreak.util.CloudFunctionality;
@@ -70,6 +76,34 @@ public class GcpCloudProvider extends AbstractCloudProvider {
     }
 
     @Override
+    public EnvironmentTestDto environment(EnvironmentTestDto environment) {
+        SecurityAccessRequest securityAccessRequest = new SecurityAccessRequest();
+        EnvironmentTestDto result = super.environment(environment);
+        if (!StringUtils.isEmpty(gcpProperties.getSecurityAccess().getDefaultSecurityGroup())) {
+            securityAccessRequest.setDefaultSecurityGroupId(gcpProperties.getSecurityAccess().getDefaultSecurityGroup());
+            result.withSecurityAccess(securityAccessRequest);
+        }
+        if (!StringUtils.isEmpty(gcpProperties.getSecurityAccess().getKnoxSecurityGroup())) {
+            securityAccessRequest.setSecurityGroupIdForKnox(gcpProperties.getSecurityAccess().getKnoxSecurityGroup());
+            result.withSecurityAccess(securityAccessRequest);
+        }
+        return result;
+    }
+
+    @Override
+    public SdxInternalTestDto sdxInternal(SdxInternalTestDto sdxInternal) {
+        sdxInternal.getRequest().getStackV4Request().setNetwork(null);
+        return sdxInternal;
+    }
+
+    @Override
+    public EnvironmentSecurityAccessTestDto environmentSecurityAccess(EnvironmentSecurityAccessTestDto environmentSecurityAccessTestDto) {
+        EnvironmentSecurityAccessTestDto envSecAcc = super.environmentSecurityAccess(environmentSecurityAccessTestDto);
+        return envSecAcc.withDefaultSecurityGroupId(gcpProperties.getSecurityAccess().getDefaultSecurityGroup())
+                .withSecurityGroupIdForKnox(gcpProperties.getSecurityAccess().getKnoxSecurityGroup());
+    }
+
+    @Override
     public VolumeV4TestDto attachedVolume(VolumeV4TestDto volume) {
         int attachedVolumeSize = gcpProperties.getInstance().getVolumeSize();
         int attachedVolumeCount = gcpProperties.getInstance().getVolumeCount();
@@ -94,6 +128,7 @@ public class GcpCloudProvider extends AbstractCloudProvider {
         GcpNetworkV4Parameters gcpNetworkV4Parameters = new GcpNetworkV4Parameters();
         gcpNetworkV4Parameters.setNoFirewallRules(false);
         gcpNetworkV4Parameters.setNoPublicIp(false);
+        gcpNetworkV4Parameters.setSharedProjectId(gcpProperties.getSharedProjectId());
         return network.withGcp(gcpNetworkV4Parameters)
                 .withSubnetCIDR(getSubnetCIDR());
     }
@@ -105,7 +140,15 @@ public class GcpCloudProvider extends AbstractCloudProvider {
 
     @Override
     public EnvironmentNetworkTestDto network(EnvironmentNetworkTestDto network) {
-        return network.withNetworkCIDR(getSubnetCIDR());
+        return network.withSubnetIDs(gcpProperties.getSubnetIds())
+                .withGcp(environmentNetworkParameters());
+    }
+
+    private EnvironmentNetworkGcpParams environmentNetworkParameters() {
+        EnvironmentNetworkGcpParams params = new EnvironmentNetworkGcpParams();
+        params.setSharedProjectId(gcpProperties.getSharedProjectId());
+        params.setNetworkId(gcpProperties.getNetworkId());
+        return params;
     }
 
     @Override

@@ -85,7 +85,7 @@ public class InstanceGroupTestDto extends AbstractCloudbreakTestDto<InstanceGrou
                 .withRecoveryMode(entity.getRecoveryModeParam(hostGroupType))
                 .withNodeCount(nodeCount)
                 .withGroup(hostGroupType.getName())
-                .withSecurityGroup(testContext.init(SecurityGroupTestDto.class))
+                //.withSecurityGroup(testContext.init(SecurityGroupTestDto.class))
                 .withType(hostGroupType.getInstanceGroupType())
                 .withName(hostGroupType.getName())
                 .withTemplate(testContext.given(InstanceTemplateV4TestDto.class));
