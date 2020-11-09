@@ -32,7 +32,7 @@ public class StreamsReplicationManagerServiceConfigProvider extends AbstractRole
         }
 
         return List.of(
-            ConfigUtils.config(CLUSTERS_CONFIG, "primary,secondary"),
+            ConfigUtils.config(CLUSTERS_CONFIG, "primary"),
             ConfigUtils.config(REPLICATIONS_CONFIG, "bootstrap.servers=" + boostrapServers)
         );
     }
